@@ -1,5 +1,58 @@
 [
   {
+    "trackingId": "NX-23366",
+    "status": "PENDING_REVIEW",
+    "createdAt": "2026-10-19T09:37:21.623Z",
+    "updatedAt": "2026-10-19T09:37:21.623Z",
+    "customer": {
+      "fullName": "Kaelen Thorne",
+      "email": "k.thorne@aerosystems.com",
+      "phone": "+1 512-555-8833",
+      "company": null,
+      "address": "88 Innovation Way",
+      "city": "Austin",
+      "postalCode": "78759",
+      "country": "United States"
+    },
+    "configuration": {
+      "technology": "FDM",
+      "material": "PETG Functional",
+      "materialId": "petg",
+      "volumeCm3": 50,
+      "heightMm": 70,
+      "infillPercent": 40,
+      "layerHeight": "0.16",
+      "addons": [
+        "support-removal"
+      ]
+    },
+    "file": {
+      "originalName": "sample_coupler.stl",
+      "filename": "1792402641602-sample_coupler.stl",
+      "filePath": "uploads/1792402641602-sample_coupler.stl",
+      "size": 107,
+      "extension": ".stl",
+      "uploadedAt": "2026-10-19T09:37:21.603Z"
+    },
+    "pricing": {
+      "materialCost": 5.07,
+      "runTimeCost": 11,
+      "setupFee": 5,
+      "postProcessingCost": 5,
+      "subtotal": 26.07,
+      "tax": 2.15,
+      "total": 28.22
+    },
+    "notes": "Matte black surface finish preferred.",
+    "history": [
+      {
+        "status": "PENDING_REVIEW",
+        "timestamp": "2026-10-19T09:37:21.623Z",
+        "note": "Order submitted. Payment pre-authorization recorded. Queued for pre-flight slicing."
+      }
+    ]
+  },
+  {
     "trackingId": "NX-68050",
     "status": "PENDING_REVIEW",
     "createdAt": "2026-10-19T09:14:28.124Z",

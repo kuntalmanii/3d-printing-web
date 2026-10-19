@@ -187,6 +187,15 @@ const PRESET_ORDERS = [
   },
 ];
 
+function getDeterministicStageFromId(idString) {
+  let hash = 0;
+  for (let i = 0; i < idString.length; i++) {
+    hash = (hash << 5) - hash + idString.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 5;
+}
+
 export default function OrderTracker() {
   const [queryInput, setQueryInput] = useState("NX-88492");
   const [activeTrackingId, setActiveTrackingId] = useState("NX-88492");
@@ -283,8 +292,8 @@ export default function OrderTracker() {
     } catch {
       // Backend is optional/local; presetMatch will keep the UI working seamlessly
       if (!presetMatch) {
-        // Create an on-the-fly simulated order for the queried ID
-        const generatedStage = Math.floor(Math.random() * 5);
+        // Create a deterministic simulated order for the queried ID
+        const generatedStage = getDeterministicStageFromId(rawId);
         setActiveTrackingId(rawId.startsWith("NX-") ? rawId : `NX-${rawId}`);
         setActiveStageIndex(generatedStage);
         setOrderDetails({
@@ -545,7 +554,6 @@ export default function OrderTracker() {
             {STAGES.map((stage, idx) => {
               const isCompleted = idx < activeStageIndex;
               const isActive = idx === activeStageIndex;
-              const isUpcoming = idx > activeStageIndex;
 
               return (
                 <button

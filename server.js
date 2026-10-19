@@ -478,7 +478,7 @@ app.post('/api/quote', (req, res) => {
       heightMm,
       addons,
       selectedAddonIds,
-    } = req.body;
+    } = req.body || {};
 
     if (volumeCm3 === undefined || volumeCm3 === null || Number(volumeCm3) <= 0) {
       return res.status(400).json({
@@ -519,7 +519,7 @@ app.post('/api/quote', (req, res) => {
  */
 app.post('/api/orders', (req, res) => {
   try {
-    const { customer, configuration, file, pricing, totalAmount, notes } = req.body;
+    const { customer, configuration, file, pricing, totalAmount, notes } = req.body || {};
 
     // Validate customer contact/shipping details
     if (!customer || !customer.fullName || !customer.email || !customer.address) {
@@ -694,7 +694,7 @@ app.get('/api/orders', (req, res) => {
 // ─────────────────────────────────────────────────────────────
 
 // 404 Route Not Found
-app.use((req, res, next) => {
+app.use((req, res) => {
   res.status(404).json({
     success: false,
     error: `Cannot ${req.method} ${req.path}. Endpoint not found.`,
@@ -710,7 +710,7 @@ app.use((req, res, next) => {
 });
 
 // Global Error Handler
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error('[API Error]:', err);
 
   // Multer: File too large

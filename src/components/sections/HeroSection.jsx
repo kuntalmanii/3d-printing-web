@@ -67,24 +67,33 @@ function WireframeGrid() {
 /* ═══════════════════════════════════════════════════════════════
    2. PARTICLE NODES
 ═══════════════════════════════════════════════════════════════ */
+function createDeterministicRandom(seed = 1337) {
+  let s = seed;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
 function ParticleNodes({ count = 180 }) {
   const ref = useRef();
 
   const { pos, col } = useMemo(() => {
+    const nextRandom = createDeterministicRandom(42);
     const pos = new Float32Array(count * 3);
     const col = new Float32Array(count * 3);
 
     for (let i = 0; i < count; i++) {
-      pos[i * 3]     = (Math.random() - 0.5) * GRID_SIZE;
-      pos[i * 3 + 1] = (Math.random() - 0.5) * 5;
-      pos[i * 3 + 2] = (Math.random() - 0.5) * GRID_SIZE;
+      pos[i * 3]     = (nextRandom() - 0.5) * GRID_SIZE;
+      pos[i * 3 + 1] = (nextRandom() - 0.5) * 5;
+      pos[i * 3 + 2] = (nextRandom() - 0.5) * GRID_SIZE;
 
       // 12% chance of orange node, rest are dim grey
-      const isOrange = Math.random() < 0.12;
+      const isOrange = nextRandom() < 0.12;
       if (isOrange) {
         col[i * 3] = 1.0; col[i * 3 + 1] = 0.35; col[i * 3 + 2] = 0.0;
       } else {
-        const v = 0.08 + Math.random() * 0.14;
+        const v = 0.08 + nextRandom() * 0.14;
         col[i * 3] = col[i * 3 + 1] = col[i * 3 + 2] = v;
       }
     }
