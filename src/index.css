@@ -1,0 +1,225 @@
+/* ─────────────────────────────────────────────
+   TAILWIND DIRECTIVES
+───────────────────────────────────────────── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────
+   CSS CUSTOM PROPERTIES — DESIGN TOKENS
+───────────────────────────────────────────── */
+:root {
+  --color-primary:        #FF5A00;
+  --color-accent:         #D94D00;
+  --color-background:     #111111;
+  --color-surface:        #EAEAEA;
+  --color-border-dark:    #333333;
+  --color-text-primary:   #FFFFFF;
+  --color-text-secondary: #A1A1AA;
+
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --radius-card:    1px;
+  --radius-control: 1px;
+  --radius-pill:    9999px;
+}
+
+/* ─────────────────────────────────────────────
+   GLOBAL RESET & BASE
+───────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text-primary);
+  min-height: 100dvh;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ─────────────────────────────────────────────
+   CUSTOM SCROLLBARS — DARK INDUSTRIAL MODE
+───────────────────────────────────────────── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #333333 #111111;
+}
+
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111111;
+  border-left: 1px solid #1a1a1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 0px; /* sharp — no rounding */
+  border: 1px solid #111111;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FF5A00;
+}
+
+::-webkit-scrollbar-corner {
+  background: #111111;
+}
+
+/* ─────────────────────────────────────────────
+   TYPOGRAPHY UTILITIES
+───────────────────────────────────────────── */
+.font-display {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.font-ui {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.font-telemetry {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.font-label {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* ─────────────────────────────────────────────
+   INDUSTRIAL COMPONENT LAYER
+───────────────────────────────────────────── */
+@layer components {
+  /* Sharp card — 1px border, no rounding */
+  .card {
+    @apply bg-[#1A1A1A] border border-borderDark rounded-none p-4;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .card-surface {
+    @apply bg-surface text-secondary border border-borderDark rounded-none p-4;
+  }
+
+  /* Primary CTA button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           bg-primary text-white font-sans font-medium
+           text-sm tracking-wide
+           px-5 py-2.5 rounded-none border border-primary
+           transition-all duration-150 ease-out
+           hover:bg-accent hover:border-accent
+           active:scale-[0.98]
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           bg-transparent text-textPrimary font-sans font-medium
+           text-sm tracking-wide
+           px-5 py-2.5 rounded-none border border-borderDark
+           transition-all duration-150 ease-out
+           hover:border-primary hover:text-primary
+           active:scale-[0.98]
+           focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary;
+  }
+
+  /* Monospace telemetry tag */
+  .tag-mono {
+    @apply inline-block font-mono text-xs font-normal tracking-widest uppercase
+           bg-[#1A1A1A] border border-borderDark text-textSecondary
+           px-2 py-0.5 rounded-none;
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    @apply inline-block w-2 h-2 rounded-full;
+  }
+
+  .status-dot--active {
+    @apply bg-primary animate-pulse-orange;
+  }
+
+  .status-dot--idle {
+    @apply bg-borderDark;
+  }
+
+  /* Horizontal rule — industrial divider */
+  .divider {
+    @apply border-t border-borderDark my-4;
+  }
+
+  /* Input field */
+  .input-field {
+    @apply w-full bg-[#1A1A1A] border border-borderDark rounded-none
+           px-3 py-2 text-sm font-sans text-textPrimary placeholder:text-textSecondary
+           transition-colors duration-150
+           focus:outline-none focus:border-primary focus:ring-0
+           hover:border-[#555555];
+  }
+}
+
+/* ─────────────────────────────────────────────
+   SELECTION
+───────────────────────────────────────────── */
+::selection {
+  background-color: rgba(255, 90, 0, 0.3);
+  color: #ffffff;
+}
+
+/* ─────────────────────────────────────────────
+   FOCUS RING — GLOBAL OVERRIDE
+───────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ─────────────────────────────────────────────
+   UTILITY: NOISE OVERLAY (optional texture)
+───────────────────────────────────────────── */
+.noise-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 128px 128px;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+}
