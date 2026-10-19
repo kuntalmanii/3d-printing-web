@@ -238,7 +238,7 @@ const TELEMETRY = [
 /* ═══════════════════════════════════════════════════════════════
    5. HERO SECTION — MAIN EXPORT
 ═══════════════════════════════════════════════════════════════ */
-export default function HeroSection() {
+export default function HeroSection({ onNavigateTrack }) {
   return (
     <section
       className="relative min-h-screen flex flex-col bg-[#111111] overflow-hidden"
@@ -319,7 +319,7 @@ export default function HeroSection() {
                     : link === "CAPABILITIES"
                     ? "#model-uploader"
                     : link === "TRACK ORDER"
-                    ? "#order-tracker"
+                    ? "#/track"
                     : "#"
                 }
                 onClick={(e) => {
@@ -334,12 +334,27 @@ export default function HeroSection() {
                     document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" });
                   } else if (link === "TRACK ORDER") {
                     e.preventDefault();
-                    document.getElementById("order-tracker")?.scrollIntoView({ behavior: "smooth" });
+                    if (onNavigateTrack) {
+                      onNavigateTrack();
+                    } else {
+                      window.location.hash = "#/track";
+                    }
                   }
                 }}
-                className="font-sans font-medium text-[11px] tracking-[0.14em] uppercase text-[#A1A1AA] hover:text-[#FF5A00] transition-colors duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#FF5A00] focus-visible:outline-offset-4"
+                className={`transition-all duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#FF5A00] focus-visible:outline-offset-4 ${
+                  link === "TRACK ORDER"
+                    ? "font-mono text-[11px] text-[#FF5A00] hover:text-white bg-[#FF5A00]/10 hover:bg-[#FF5A00]/20 px-3 py-1.5 border border-[#FF5A00]/40 flex items-center gap-1.5 tracking-wider cursor-pointer font-bold shadow-sm"
+                    : "font-sans font-medium text-[11px] tracking-[0.14em] uppercase text-[#A1A1AA] hover:text-[#FF5A00]"
+                }`}
               >
-                {link}
+                {link === "TRACK ORDER" ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse" />
+                    [ TRACK ORDER ↗ ]
+                  </>
+                ) : (
+                  link
+                )}
               </a>
             </li>
           ))}

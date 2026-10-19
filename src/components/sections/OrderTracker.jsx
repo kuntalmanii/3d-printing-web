@@ -196,11 +196,32 @@ function getDeterministicStageFromId(idString) {
   return Math.abs(hash) % 5;
 }
 
-export default function OrderTracker() {
-  const [queryInput, setQueryInput] = useState("NX-88492");
-  const [activeTrackingId, setActiveTrackingId] = useState("NX-88492");
-  const [activeStageIndex, setActiveStageIndex] = useState(2); // Step 3 by default
-  const [orderDetails, setOrderDetails] = useState(PRESET_ORDERS[0]);
+function resolveInitialOrder(id) {
+  const cleanId = (id || "NX-88492").trim().toUpperCase();
+  const match = PRESET_ORDERS.find(
+    (p) =>
+      p.trackingId === cleanId ||
+      p.trackingId.replace("NX-", "") === cleanId.replace("NX-", "")
+  );
+  if (match) return match;
+  const stage = getDeterministicStageFromId(cleanId);
+  return {
+    trackingId: cleanId.startsWith("NX-") ? cleanId : `NX-${cleanId}`,
+    stageIndex: stage,
+    partName: "custom_cad_model.stl",
+    material: "PETG Functional",
+    technology: "FDM",
+    orderDate: "OCT 19, 2026",
+    customer: "Client Direct",
+  };
+}
+
+export default function OrderTracker({ initialId = "NX-88492", isStandalonePage = false }) {
+  const initialData = resolveInitialOrder(initialId);
+  const [queryInput, setQueryInput] = useState(initialId);
+  const [activeTrackingId, setActiveTrackingId] = useState(initialId);
+  const [activeStageIndex, setActiveStageIndex] = useState(initialData.stageIndex);
+  const [orderDetails, setOrderDetails] = useState(initialData);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState(null);
   const [copied, setCopied] = useState(false);
@@ -325,7 +346,9 @@ export default function OrderTracker() {
   return (
     <section
       id="order-tracker"
-      className="relative bg-[#111111] text-white py-24 px-6 md:px-12 lg:px-20 border-t border-[#333333] overflow-hidden"
+      className={`relative bg-[#111111] text-white px-6 md:px-12 lg:px-20 overflow-hidden ${
+        isStandalonePage ? "py-10 md:py-14" : "py-24 border-t border-[#333333]"
+      }`}
       aria-label="Order Tracking Dashboard"
     >
       {/* Background ambient grid pattern */}

@@ -33,7 +33,7 @@ import {
   calculateQuote,
 } from "../../utils/pricingCalculator";
 
-export default function QuoteCalculator({ modelMetrics }) {
+export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
   // Extract geometry metrics from modelMetrics prop with safe fallbacks
   const activeAnalysis = modelMetrics?.analysis;
   const fileName = modelMetrics?.fileName || "20mm_Calibration_Cube.stl";
@@ -684,14 +684,18 @@ export default function QuoteCalculator({ modelMetrics }) {
                     <span>Order #{orderId || "NX-88492"} queued for fleet printing.</span>
                   </span>
                   <a
-                    href="#order-tracker"
+                    href={`#/track?id=${orderId || "NX-88492"}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      document.getElementById("order-tracker")?.scrollIntoView({ behavior: "smooth" });
+                      if (onNavigateTrack) {
+                        onNavigateTrack(orderId || "NX-88492");
+                      } else {
+                        window.location.hash = `#/track?id=${orderId || "NX-88492"}`;
+                      }
                     }}
-                    className="text-[#FF5A00] hover:text-white underline tracking-wider font-bold"
+                    className="text-[#FF5A00] hover:text-white underline tracking-wider font-bold flex items-center gap-1 cursor-pointer"
                   >
-                    [ TRACE ORDER LIVE → ]
+                    [ OPEN TRACKING APPLICATION ↗ ]
                   </a>
                 </div>
               )}
