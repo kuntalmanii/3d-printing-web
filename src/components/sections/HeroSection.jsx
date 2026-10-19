@@ -309,6 +309,8 @@ export default function HeroSection() {
                     ? "#materials-section"
                     : link === "CAPABILITIES"
                     ? "#model-uploader"
+                    : link === "TRACK ORDER"
+                    ? "#order-tracker"
                     : "#"
                 }
                 onClick={(e) => {
@@ -321,6 +323,9 @@ export default function HeroSection() {
                   } else if (link === "CAPABILITIES") {
                     e.preventDefault();
                     document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" });
+                  } else if (link === "TRACK ORDER") {
+                    e.preventDefault();
+                    document.getElementById("order-tracker")?.scrollIntoView({ behavior: "smooth" });
                   }
                 }}
                 className="font-sans font-medium text-[11px] tracking-[0.14em] uppercase text-[#A1A1AA] hover:text-[#FF5A00] transition-colors duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#FF5A00] focus-visible:outline-offset-4"

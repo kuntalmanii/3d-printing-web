@@ -677,13 +677,22 @@ export default function QuoteCalculator({ modelMetrics }) {
 
               {/* Success Notification Banner */}
               {orderQueued && (
-                <div className="mt-3 p-3 bg-[#111111] text-white font-mono text-[11px] border border-[#333333] flex items-center justify-between animate-fade-in">
+                <div className="mt-3 p-3 bg-[#111111] text-white font-mono text-[11px] border border-[#333333] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 animate-fade-in">
                   <span className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-ping" />
                     <span className="text-[#22C55E] font-bold">DISPATCH SUCCESS:</span>
-                    <span>Order #{orderId || "748921"} queued for fleet printing.</span>
+                    <span>Order #{orderId || "NX-88492"} queued for fleet printing.</span>
                   </span>
-                  <span className="text-[#FF5A00]">[ DISPATCH QUEUED ]</span>
+                  <a
+                    href="#order-tracker"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById("order-tracker")?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="text-[#FF5A00] hover:text-white underline tracking-wider font-bold"
+                  >
+                    [ TRACE ORDER LIVE → ]
+                  </a>
                 </div>
               )}
             </div>
