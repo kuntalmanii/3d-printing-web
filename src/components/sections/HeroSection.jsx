@@ -302,7 +302,22 @@ export default function HeroSection() {
           {NAV_LINKS.map((link) => (
             <li key={link}>
               <a
-                href="#"
+                href={
+                  link === "INSTANT QUOTE"
+                    ? "#quote-calculator"
+                    : link === "MATERIALS"
+                    ? "#model-uploader"
+                    : "#"
+                }
+                onClick={(e) => {
+                  if (link === "INSTANT QUOTE") {
+                    e.preventDefault();
+                    document.getElementById("quote-calculator")?.scrollIntoView({ behavior: "smooth" });
+                  } else if (link === "MATERIALS") {
+                    e.preventDefault();
+                    document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" });
+                  }
+                }}
                 className="font-sans font-medium text-[11px] tracking-[0.14em] uppercase text-[#A1A1AA] hover:text-[#FF5A00] transition-colors duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#FF5A00] focus-visible:outline-offset-4"
               >
                 {link}
@@ -354,6 +369,7 @@ export default function HeroSection() {
           {/* Primary CTA */}
           <button
             id="cta-upload-quote"
+            onClick={() => document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" })}
             className="
               inline-flex items-center justify-center
               bg-[#FF5A00] hover:bg-[#D94D00]
@@ -371,6 +387,7 @@ export default function HeroSection() {
           {/* Secondary CTA */}
           <button
             id="cta-tolerances"
+            onClick={() => document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" })}
             className="
               inline-flex items-center justify-center
               bg-transparent
