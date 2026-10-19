@@ -1,0 +1,161 @@
+[
+  {
+    "trackingId": "NX-68050",
+    "status": "PENDING_REVIEW",
+    "createdAt": "2026-10-19T09:14:28.124Z",
+    "updatedAt": "2026-10-19T09:14:28.124Z",
+    "customer": {
+      "fullName": "Kaelen Thorne",
+      "email": "k.thorne@aerosystems.com",
+      "phone": "+1 512-555-8833",
+      "company": null,
+      "address": "88 Innovation Way",
+      "city": "Austin",
+      "postalCode": "78759",
+      "country": "United States"
+    },
+    "configuration": {
+      "technology": "FDM",
+      "material": "PETG Functional",
+      "materialId": "petg",
+      "volumeCm3": 50,
+      "heightMm": 70,
+      "infillPercent": 40,
+      "layerHeight": "0.16",
+      "addons": [
+        "support-removal"
+      ]
+    },
+    "file": {
+      "originalName": "sample_coupler.stl",
+      "filename": "1792401268085-sample_coupler.stl",
+      "filePath": "uploads/1792401268085-sample_coupler.stl",
+      "size": 107,
+      "extension": ".stl",
+      "uploadedAt": "2026-10-19T09:14:28.087Z"
+    },
+    "pricing": {
+      "materialCost": 5.07,
+      "runTimeCost": 11,
+      "setupFee": 5,
+      "postProcessingCost": 5,
+      "subtotal": 26.07,
+      "tax": 2.15,
+      "total": 28.22
+    },
+    "notes": "Matte black surface finish preferred.",
+    "history": [
+      {
+        "status": "PENDING_REVIEW",
+        "timestamp": "2026-10-19T09:14:28.124Z",
+        "note": "Order submitted. Payment pre-authorization recorded. Queued for pre-flight slicing."
+      }
+    ]
+  },
+  {
+    "trackingId": "NX-46808",
+    "status": "PENDING_REVIEW",
+    "createdAt": "2026-10-19T09:13:12.724Z",
+    "updatedAt": "2026-10-19T09:13:12.724Z",
+    "customer": {
+      "fullName": "Elena Rostova",
+      "email": "e.rostova@cyberdynesys.com",
+      "phone": "+1 (512) 555-0199",
+      "company": "Cyberdyne Systems",
+      "address": "1000 Tech Ridge Center, Suite 400",
+      "city": "Austin",
+      "postalCode": "78753",
+      "country": "United States"
+    },
+    "configuration": {
+      "technology": "FDM",
+      "material": "PA-CF Carbon Fiber",
+      "materialId": "pa-cf",
+      "infillPercent": 40,
+      "layerHeight": "0.16",
+      "volumeCm3": 45.2,
+      "heightMm": 65,
+      "addons": [
+        "support-removal",
+        "brass-inserts"
+      ]
+    },
+    "file": {
+      "originalName": "test_bracket.stl",
+      "filePath": "uploads/1792401174640-test_bracket.stl",
+      "size": 106
+    },
+    "pricing": {
+      "materialCost": 10.21,
+      "runTimeCost": 10.15,
+      "setupFee": 5,
+      "postProcessingCost": 13,
+      "subtotal": 38.36,
+      "tax": 3.16,
+      "total": 41.52
+    },
+    "notes": "Urgent prototype for flight test rig. Critical tolerance ±0.1mm.",
+    "history": [
+      {
+        "status": "PENDING_REVIEW",
+        "timestamp": "2026-10-19T09:13:12.724Z",
+        "note": "Order submitted. Payment pre-authorization recorded. Queued for pre-flight slicing."
+      }
+    ]
+  },
+  {
+    "trackingId": "NX-88492",
+    "status": "QUEUED_FOR_PRINT",
+    "createdAt": "2026-10-19T10:00:00.000Z",
+    "customer": {
+      "fullName": "Marcus Vance",
+      "email": "m.vance@apexrobotics.io",
+      "company": "Apex Robotics Ltd",
+      "address": "404 Industrial Blvd, Suite 12",
+      "city": "Austin",
+      "postalCode": "78701",
+      "country": "United States"
+    },
+    "configuration": {
+      "technology": "FDM",
+      "material": "PA-CF Carbon Fiber",
+      "infillPercent": 40,
+      "layerHeight": "0.16mm Standard",
+      "addons": [
+        "support-removal",
+        "brass-inserts"
+      ]
+    },
+    "file": {
+      "originalName": "quad_motor_bracket_v4.stl",
+      "filePath": "uploads/mock-quad_motor_bracket_v4.stl",
+      "size": 3482910
+    },
+    "pricing": {
+      "materialCost": 12.8,
+      "runTimeCost": 8.5,
+      "setupFee": 5,
+      "postProcessingCost": 13,
+      "subtotal": 39.3,
+      "tax": 3.24,
+      "total": 42.54
+    },
+    "history": [
+      {
+        "status": "PENDING_REVIEW",
+        "timestamp": "2026-10-19T10:00:00.000Z",
+        "note": "Order received and payment authorization confirmed."
+      },
+      {
+        "status": "ANALYZING_MESH",
+        "timestamp": "2026-10-19T10:05:00.000Z",
+        "note": "Volumetric and wall thickness verification passed."
+      },
+      {
+        "status": "QUEUED_FOR_PRINT",
+        "timestamp": "2026-10-19T10:15:00.000Z",
+        "note": "Assigned to Fleet Bed #04 (Bambu Lab X1-Carbon, 0.4 Hardened Steel Nozzle)."
+      }
+    ]
+  }
+]
