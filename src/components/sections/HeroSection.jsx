@@ -306,6 +306,8 @@ export default function HeroSection() {
                   link === "INSTANT QUOTE"
                     ? "#quote-calculator"
                     : link === "MATERIALS"
+                    ? "#materials-section"
+                    : link === "CAPABILITIES"
                     ? "#model-uploader"
                     : "#"
                 }
@@ -314,6 +316,9 @@ export default function HeroSection() {
                     e.preventDefault();
                     document.getElementById("quote-calculator")?.scrollIntoView({ behavior: "smooth" });
                   } else if (link === "MATERIALS") {
+                    e.preventDefault();
+                    document.getElementById("materials-section")?.scrollIntoView({ behavior: "smooth" });
+                  } else if (link === "CAPABILITIES") {
                     e.preventDefault();
                     document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" });
                   }
@@ -387,7 +392,7 @@ export default function HeroSection() {
           {/* Secondary CTA */}
           <button
             id="cta-tolerances"
-            onClick={() => document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => document.getElementById("materials-section")?.scrollIntoView({ behavior: "smooth" })}
             className="
               inline-flex items-center justify-center
               bg-transparent
