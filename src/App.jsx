@@ -3,16 +3,23 @@ import HeroSection from "./components/sections/HeroSection";
 import ModelUploader from "./components/sections/ModelUploader";
 import QuoteCalculator from "./components/sections/QuoteCalculator";
 import MaterialsSection from "./components/sections/MaterialsSection";
+import UserPanel from "./components/UserPanel";
 import TrackPage from "./pages/TrackPage";
 import { useModelParser } from "./hooks/useModelParser";
+import { INITIAL_ORDERS } from "./data/mockData";
 
 /**
  * Root App — Engineering dark mode additive manufacturing platform:
- *  - Route 'home': Complete platform console (Hero, ModelUploader, Materials, QuoteCalculator)
+ *  - Route 'home': Complete platform console (Hero, UserPanel, ModelUploader, Materials, QuoteCalculator)
  *  - Route 'track': Dedicated standalone Order Tracking application page
  */
 export default function App() {
   const modelParser = useModelParser();
+  const [orders, setOrders] = useState(INITIAL_ORDERS);
+
+  const handleNewOrder = (newOrder) => {
+    setOrders((prev) => [newOrder, ...prev]);
+  };
 
   // Route state initialized from window.location.hash
   const [currentRoute, setCurrentRoute] = useState(() => {
@@ -57,6 +64,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#111111] text-white selection:bg-[#FF5A00] selection:text-black">
       <HeroSection onNavigateTrack={navigateToTrack} />
+
+      {/* Production Client User Panel */}
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <UserPanel orders={orders} onNewOrder={handleNewOrder} />
+      </div>
+
       <ModelUploader parser={modelParser} />
       <MaterialsSection />
       <QuoteCalculator modelMetrics={modelParser} onNavigateTrack={navigateToTrack} />
