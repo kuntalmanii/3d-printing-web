@@ -1,10 +1,9 @@
-import RootLayout from "./components/layout/RootLayout";
 import HeroSection from "./components/sections/HeroSection";
 
+/**
+ * Root App — HeroSection owns its own layout (nav + full-bleed canvas).
+ * Additional pages/routes can be added here as the project grows.
+ */
 export default function App() {
-  return (
-    <RootLayout>
-      <HeroSection />
-    </RootLayout>
-  );
+  return <HeroSection />;
 }
