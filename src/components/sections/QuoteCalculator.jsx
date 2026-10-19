@@ -145,7 +145,7 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
               <span className="text-[#FF5A00]">v2.4 ACTIVE</span>
             </div>
             <div className="text-[10px] text-[#71717A] leading-relaxed">
-              Cost = (Mass × $/g × 3.0) + (PrintHrs × $2.50) + $5.00 Setup + Add-ons
+              Cost = (Mass × ₹/g × 3.0) + (PrintHrs × ₹210) + ₹420 Setup + Add-ons
             </div>
           </div>
         </div>
@@ -287,26 +287,26 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center text-[#A1A1AA]">
                     <span>
-                      RAW MATERIAL ({singleQuote.massGrams}g @ ${activeMaterial.costPerGram}/g × 3.0x):
+                      RAW MATERIAL ({singleQuote.massGrams}g @ ₹{activeMaterial.costPerGram.toFixed(2)}/g × 3.0x):
                     </span>
                     <span className="text-white font-semibold">
-                      ${singleQuote.materialCost.toFixed(2)}
+                      ₹{singleQuote.materialCost.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center text-[#A1A1AA]">
                     <span>
-                      MACHINE OCCUPANCY ({singleQuote.estimatedPrintHours}h @ $2.50/hr):
+                      MACHINE OCCUPANCY ({singleQuote.estimatedPrintHours}h @ ₹{PRICING_CONSTANTS.machineHourlyRate}/hr):
                     </span>
                     <span className="text-white font-semibold">
-                      ${singleQuote.machineCost.toFixed(2)}
+                      ₹{singleQuote.machineCost.toFixed(2)}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center text-[#A1A1AA]">
                     <span>CALIBRATION &amp; PLATFORM SETUP FEE:</span>
                     <span className="text-white font-semibold">
-                      ${PRICING_CONSTANTS.setupFee.toFixed(2)}
+                      ₹{PRICING_CONSTANTS.setupFee.toFixed(2)}
                     </span>
                   </div>
 
@@ -314,7 +314,7 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
                     <div className="flex justify-between items-center text-[#A1A1AA]">
                       <span>POST-PROCESSING ADD-ONS:</span>
                       <span className="text-[#FF5A00] font-semibold">
-                        +${singleQuote.postProcessingFees.toFixed(2)}
+                        +₹{singleQuote.postProcessingFees.toFixed(2)}
                       </span>
                     </div>
                   )}
@@ -322,7 +322,7 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
                   <div className="border-t border-[#262626] pt-1.5 flex justify-between items-center font-bold text-white">
                     <span>UNIT BASE PRICE:</span>
                     <span className="text-[#FF5A00] text-[13px]">
-                      ${singleQuote.totalPrice.toFixed(2)}
+                      ₹{singleQuote.totalPrice.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -412,7 +412,7 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
                           {mat.name}
                         </span>
                         <span className="font-mono text-[11px] text-[#FF5A00] font-semibold">
-                          ${mat.costPerGram.toFixed(2)}/g
+                          ₹{mat.costPerGram.toFixed(2)}/g
                         </span>
                       </div>
                       <p className="font-sans text-[11px] text-[#71717A] leading-tight">
@@ -551,7 +551,7 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
                             {addon.label}
                           </span>
                           <span className="font-mono text-[11px] text-[#FF5A00] font-semibold">
-                            +${addon.price.toFixed(2)}
+                            +₹{addon.price.toFixed(2)}
                           </span>
                         </div>
                         <p className="font-sans text-[11px] text-[#71717A] mt-0.5">
@@ -649,10 +649,10 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
                     TOTAL ORDER PRICE:
                   </span>
                   <div className="font-mono text-[26px] font-black text-[#FF5A00] leading-none my-0.5">
-                    ${totalOrderPrice.toFixed(2)}
+                    ₹{totalOrderPrice.toFixed(2)}
                   </div>
                   <span className="font-mono text-[9px] text-[#777777]">
-                    {quantity > 1 ? `(${quantity} × $${singleQuote.totalPrice.toFixed(2)})` : "TAX INCLUDED"}
+                    {quantity > 1 ? `(${quantity} × ₹${singleQuote.totalPrice.toFixed(2)})` : "TAX INCLUDED"}
                   </span>
                 </div>
               </div>
@@ -672,7 +672,7 @@ export default function QuoteCalculator({ modelMetrics, onNavigateTrack }) {
                   shadow-md
                 "
               >
-                [ ADD TO PRODUCTION QUEUE — ${totalOrderPrice.toFixed(2)} ]
+                [ ADD TO PRODUCTION QUEUE — ₹{totalOrderPrice.toFixed(2)} ]
               </button>
 
               {/* Success Notification Banner */}

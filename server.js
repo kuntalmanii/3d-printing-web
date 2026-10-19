@@ -34,10 +34,12 @@ if (!fs.existsSync(ORDERS_FILE)) {
 // Production Additive Manufacturing Pricing Database & Specs
 // ─────────────────────────────────────────────────────────────
 const PRICING_CONSTANTS = {
+  currency: 'INR',
+  currencySymbol: '₹',
   materialMarkup: 3.0,     // 3.0x raw material markup
-  machineHourlyRate: 2.50, // $2.50 / hour machine run-time
-  setupFee: 5.00,          // $5.00 fixed calibration and bed preparation fee
-  taxRate: 0.0825,         // 8.25% standard tax
+  machineHourlyRate: 210,  // ₹210 / hour machine run-time
+  setupFee: 420,           // ₹420 fixed calibration and bed preparation fee
+  taxRate: 0.18,           // 18% GST
 };
 
 const MATERIALS = {
@@ -45,42 +47,42 @@ const MATERIALS = {
     id: 'pla-plus',
     name: 'PLA+ Tough',
     technology: 'FDM',
-    costPerGram: 0.04,
+    costPerGram: 3.50,
     density: 1.24, // g/cm³
   },
   'petg': {
     id: 'petg',
     name: 'PETG Functional',
     technology: 'FDM',
-    costPerGram: 0.05,
+    costPerGram: 4.20,
     density: 1.27,
   },
   'abs': {
     id: 'abs',
     name: 'ABS Impact',
     technology: 'FDM',
-    costPerGram: 0.06,
+    costPerGram: 5.00,
     density: 1.04,
   },
   'pa-cf': {
     id: 'pa-cf',
     name: 'PA-CF Carbon Fiber',
     technology: 'FDM',
-    costPerGram: 0.12,
+    costPerGram: 10.50,
     density: 1.18,
   },
   'resin-std': {
     id: 'resin-std',
     name: 'Standard Pro Grey',
     technology: 'SLA',
-    costPerGram: 0.08,
+    costPerGram: 6.80,
     density: 1.15,
   },
   'resin-tough': {
     id: 'resin-tough',
     name: 'Engineering Tough',
     technology: 'SLA',
-    costPerGram: 0.15,
+    costPerGram: 12.80,
     density: 1.20,
   },
 };
@@ -95,17 +97,17 @@ const POST_PROCESSING_ADDONS = {
   'support-removal': {
     id: 'support-removal',
     name: 'Support Removal & Manual Deburring',
-    price: 5.00,
+    price: 420.00,
   },
   'acetone-uv-polish': {
     id: 'acetone-uv-polish',
     name: 'Acetone Vapor / UV Chamber Polish',
-    price: 10.00,
+    price: 840.00,
   },
   'brass-inserts': {
     id: 'brass-inserts',
     name: 'Brass Heat-Set Thread Inserts',
-    price: 8.00,
+    price: 670.00,
   },
 };
 

@@ -19,9 +19,11 @@
  */
 
 export const PRICING_CONSTANTS = {
+  currencySymbol: "₹",
+  currencyCode: "INR",
   materialMarkup: 3.0,
-  machineHourlyRate: 2.5, // $2.50 / hr
-  setupFee: 5.0, // $5.00
+  machineHourlyRate: 210, // ₹210 / hr
+  setupFee: 420,          // ₹420 calibration & setup
 };
 
 export const TECHNOLOGIES = {
@@ -33,7 +35,7 @@ export const TECHNOLOGIES = {
       {
         id: "pla-plus",
         name: "PLA+ Tough",
-        costPerGram: 0.04,
+        costPerGram: 3.50,
         density: 1.24, // g/cm³
         color: "#FF5A00",
         desc: "Rapid prototyping, fit checks, cosmetic models",
@@ -41,7 +43,7 @@ export const TECHNOLOGIES = {
       {
         id: "petg",
         name: "PETG Functional",
-        costPerGram: 0.05,
+        costPerGram: 4.20,
         density: 1.27,
         color: "#38BDF8",
         desc: "Chemical resistance, snap-fits, outdoor enclosures",
@@ -49,7 +51,7 @@ export const TECHNOLOGIES = {
       {
         id: "abs",
         name: "ABS Impact",
-        costPerGram: 0.06,
+        costPerGram: 5.00,
         density: 1.04,
         color: "#FBBF24",
         desc: "High thermal stability, automotive interior parts",
@@ -57,7 +59,7 @@ export const TECHNOLOGIES = {
       {
         id: "pa-cf",
         name: "PA-CF Carbon Fiber",
-        costPerGram: 0.12,
+        costPerGram: 10.50,
         density: 1.18,
         color: "#E2E8F0",
         desc: "Structural stiffness, drone arms, industrial jigs",
@@ -72,7 +74,7 @@ export const TECHNOLOGIES = {
       {
         id: "resin-std",
         name: "Standard Pro Grey",
-        costPerGram: 0.08,
+        costPerGram: 6.80,
         density: 1.15,
         color: "#94A3B8",
         desc: "Smooth presentation masters, miniature figurines",
@@ -80,7 +82,7 @@ export const TECHNOLOGIES = {
       {
         id: "resin-tough",
         name: "Engineering Tough",
-        costPerGram: 0.15,
+        costPerGram: 12.80,
         density: 1.2,
         color: "#A78BFA",
         desc: "High elongation at break, impact resistant housings",
@@ -99,19 +101,19 @@ export const POST_PROCESSING_ADDONS = [
   {
     id: "support-removal",
     label: "Support Removal & Manual Deburring",
-    price: 5.0,
+    price: 420.0,
     desc: "Clean detachment of all scaffolding and support interface marks",
   },
   {
     id: "acetone-uv-polish",
     label: "Acetone Vapor / UV Chamber Polish",
-    price: 10.0,
+    price: 840.0,
     desc: "Layer line elimination & high-gloss protective sealant",
   },
   {
     id: "brass-inserts",
     label: "Brass Heat-Set Thread Inserts",
-    price: 8.0,
+    price: 670.0,
     desc: "M3/M4 threaded brass inserts installed via thermal arbor press",
   },
 ];
