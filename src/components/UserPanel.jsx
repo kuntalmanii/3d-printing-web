@@ -24,6 +24,7 @@ import { useState, useMemo, useRef } from "react";
 import { INITIAL_ORDERS, formatINR } from "../data/mockData";
 import { sound } from "../utils/soundEffects";
 import { useToast } from "../context/ToastContext";
+import ModelViewer3D from "./ModelViewer3D";
 
 // Extrusion Technologies
 const TECHNOLOGIES = [
@@ -142,8 +143,6 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
 
   // Viewport Interactive Controls
   const [layerProgress, setLayerProgress] = useState(100); // 0 to 100%
-  const [viewPerspective, setViewPerspective] = useState("ISO-3D"); // "ISO-3D" | "TOP" | "FRONT"
-  const [showWireframe, setShowWireframe] = useState(true);
 
   // Slicing Configurator State
   const [technology, setTechnology] = useState("FDM");
@@ -172,6 +171,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   const [isMirroredY, setIsMirroredY] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(true);
   const [customModelName, setCustomModelName] = useState("");
+  const [uploadedFileBuffer, setUploadedFileBuffer] = useState(null);
 
   // Sync loaded design from popular designs vault during render
   const [prevLoadedDesignKey, setPrevLoadedDesignKey] = useState(null);
@@ -188,6 +188,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
       volumeCm3: loadedDesign.volumeCm3 || 42,
       source: `Popular Vault // ${loadedDesign.title}`,
     });
+    setUploadedFileBuffer(null);
     setDesignScale({ x: 100, y: 100, z: 100 });
     setRotation({ x: 0, y: 0, z: 0 });
     setIsMirroredX(false);
@@ -384,6 +385,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   // Load sample model
   const handleLoadSample = (sample) => {
     sound.playClick();
+    setUploadedFileBuffer(null);
     setSelectedFile({
       name: sample.name,
       sizeMB: sample.sizeMB,
@@ -422,6 +424,16 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
     const z = Math.round(baseDimension * 0.5);
     const volumeCm3 = Number(((x * y * z * 0.24) / 1000).toFixed(1));
 
+    if (extension === "stl") {
+      file.arrayBuffer().then((buffer) => {
+        setUploadedFileBuffer(buffer);
+      }).catch(() => {
+        setUploadedFileBuffer(null);
+      });
+    } else {
+      setUploadedFileBuffer(null);
+    }
+
     setSelectedFile({
       name: file.name,
       sizeMB: sizeInMB || 0.45,
@@ -441,7 +453,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
 
     addToast({
       title: "CAD Geometry Ingested",
-      message: `${file.name} successfully parsed: ${x}×${y}×${z} mm bounds computed. CAD Editor ready.`,
+      message: `${file.name} successfully parsed: ${x}×${y}×${z} mm bounds computed. Interactive 3D WebGL preview ready.`,
       type: "success",
     });
   };
@@ -463,6 +475,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   const handleDiscardFile = () => {
     sound.playClick();
     setSelectedFile(null);
+    setUploadedFileBuffer(null);
     setDesignScale({ x: 100, y: 100, z: 100 });
     setRotation({ x: 0, y: 0, z: 0 });
     setCustomModelName("");
@@ -774,136 +787,27 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
                       </div>
                     </div>
 
-                    {/* Industrial Interactive Viewport */}
-                    <div className="relative bg-[#0D0D0D] border border-[#333333] rounded-[1px] p-4 h-72 overflow-hidden flex flex-col justify-between">
-                      {/* Technical Grid Overlay */}
-                      <div
-                        className="absolute inset-0 pointer-events-none opacity-25"
-                        style={{
-                          backgroundImage: `
-                            linear-gradient(to right, #333333 1px, transparent 1px),
-                            linear-gradient(to bottom, #333333 1px, transparent 1px)
-                          `,
-                          backgroundSize: "20px 20px",
-                        }}
+                    {/* Industrial Interactive 3D WebGL Viewport */}
+                    <div className="relative">
+                      <ModelViewer3D
+                        modelType={selectedFile.source || selectedFile.name}
+                        fileName={selectedFile.name}
+                        fileBuffer={uploadedFileBuffer}
+                        dimensions={effectiveDims}
+                        scale={designScale}
+                        rotation={rotation}
+                        isMirroredX={isMirroredX}
+                        isMirroredY={isMirroredY}
+                        materialId={materialId}
+                        technology={technology}
+                        layerProgress={layerProgress}
+                        infill={infill}
+                        infillPattern={infillPattern}
+                        onLayerChange={(p) => setLayerProgress(p)}
+                        height="340px"
+                        showControls={true}
+                        interactive={true}
                       />
-
-                      {/* Viewport Top Status HUD & Perspective Controls */}
-                      <div className="relative z-10 flex items-center justify-between font-mono text-[10px]">
-                        <span className="text-[#FF5A00] font-bold flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 bg-[#FF5A00] rounded-full animate-ping" />
-                          [ {showWireframe ? "WIREFRAME BOUNDS ACTIVE" : "SOLID SHADED BOUNDS"} ]
-                        </span>
-
-                        <div className="flex items-center gap-1 bg-[#141414] border border-[#333333] p-0.5 rounded-[1px]">
-                          {["ISO-3D", "TOP", "FRONT"].map((p) => (
-                            <button
-                              key={p}
-                              type="button"
-                              onClick={() => {
-                                sound.playClick();
-                                setViewPerspective(p);
-                              }}
-                              className={`px-1.5 py-0.5 text-[9px] rounded-[1px] uppercase transition-colors ${
-                                viewPerspective === p
-                                  ? "bg-[#FF5A00] text-black font-bold"
-                                  : "text-[#A1A1AA] hover:text-white"
-                              }`}
-                            >
-                              {p}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Isometric Pulsating Wireframe Box Visualizer with Real CAD Transform */}
-                      <div className="relative z-10 my-auto flex items-center justify-center">
-                        <div
-                          className={`relative border border-[#FF5A00] rounded-[1px] flex items-center justify-center shadow-sm transition-all duration-300 ${
-                            showWireframe ? "border-dashed bg-[#FF5A00]/5" : "border-solid bg-[#FF5A00]/15"
-                          }`}
-                          style={{
-                            width: `${Math.max(110, Math.min(220, 160 * (effectiveDims.x / (selectedFile.dimensions?.x || 80))))}px`,
-                            height: `${Math.max(70, Math.min(160, 100 * (effectiveDims.y / (selectedFile.dimensions?.y || 60))))}px`,
-                            transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) rotateZ(${rotation.z}deg) scaleX(${isMirroredX ? -1 : 1}) scaleY(${isMirroredY ? -1 : 1})`,
-                          }}
-                        >
-                          {/* Inner perspective crosshairs */}
-                          <div className="absolute inset-x-0 top-1/2 border-t border-[#FF5A00]/30 border-dotted" />
-                          <div className="absolute inset-y-0 left-1/2 border-l border-[#FF5A00]/30 border-dotted" />
-
-                          {/* Slicing Height Laser Simulation Bar */}
-                          <div
-                            className="absolute inset-x-0 border-t-2 border-[#FF5A00] shadow-[0_0_8px_#FF5A00] transition-all duration-150"
-                            style={{ bottom: `${layerProgress}%` }}
-                          >
-                            <span className="absolute -right-2 -top-1 w-2 h-2 bg-white rounded-full animate-ping" />
-                          </div>
-
-                          {/* Pulsating Corner Anchor Points */}
-                          <span className="absolute -top-1 -left-1 w-2 h-2 bg-[#FF5A00]" />
-                          <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#FF5A00]" />
-                          <span className="absolute -bottom-1 -left-1 w-2 h-2 bg-[#FF5A00]" />
-                          <span className="absolute -bottom-1 -right-1 w-2 h-2 bg-[#FF5A00]" />
-
-                          {/* Pulsating Dimension Badge */}
-                          <div className="bg-[#111111]/90 border border-[#FF5A00] px-2.5 py-1 rounded-[1px] font-mono text-center shadow">
-                            <span className="text-[10px] text-[#A1A1AA] uppercase block font-semibold">
-                              {designScale.x !== 100 || designScale.y !== 100 || designScale.z !== 100
-                                ? `BOUNDS (${designScale.x}% SCALE):`
-                                : "BOUNDING ENVELOPE:"}
-                            </span>
-                            <span className="text-xs text-white font-bold tracking-wider">
-                              {effectiveDims.x} × {effectiveDims.y} × {effectiveDims.z} mm
-                            </span>
-                          </div>
-
-                          {/* Axis Measurement Labels */}
-                          <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 font-mono text-[9px] text-[#FF5A00]">
-                            X: {effectiveDims.x}mm
-                          </span>
-                          <span className="absolute -left-6 top-1/2 -translate-y-1/2 font-mono text-[9px] text-[#38BDF8] -rotate-90">
-                            Y: {effectiveDims.y}mm
-                          </span>
-                          <span className="absolute -right-6 top-1/2 -translate-y-1/2 font-mono text-[9px] text-[#22C55E] rotate-90">
-                            Z: {effectiveDims.z}mm
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Interactive Layer Slicing Scrubber Slider */}
-                      <div className="relative z-10 bg-[#141414] border border-[#262626] p-2 rounded-[1px] space-y-1">
-                        <div className="flex items-center justify-between font-mono text-[9px]">
-                          <span className="text-[#A1A1AA]">
-                            LAYER SLICE SIMULATOR:{" "}
-                            <strong className="text-[#FF5A00]">
-                              {Math.round((layerProgress / 100) * 350)} / 350 LAYERS
-                            </strong>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setShowWireframe(!showWireframe)}
-                            className="text-[#71717A] hover:text-white uppercase"
-                          >
-                            [{showWireframe ? "SOLID" : "WIREFRAME"}]
-                          </button>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          value={layerProgress}
-                          onChange={(e) => setLayerProgress(Number(e.target.value))}
-                          className="w-full accent-[#FF5A00] cursor-pointer h-1 bg-[#222222] rounded-none"
-                        />
-                      </div>
-
-                      {/* Viewport Bottom Telemetry Bar */}
-                      <div className="relative z-10 flex items-center justify-between font-mono text-[9px] text-[#71717A] border-t border-[#222222] pt-1">
-                        <span>VOLUME: {effectiveVolume} cm³</span>
-                        <span>GRID: 10.0 mm</span>
-                        <span>ROT: [{rotation.x}°, {rotation.y}°, {rotation.z}°]</span>
-                      </div>
                     </div>
 
                     {/* ═════════════════════════════════════════════════════════

@@ -24,6 +24,7 @@ import { useState, useMemo } from "react";
 import { formatINR } from "../../data/mockData";
 import { sound } from "../../utils/soundEffects";
 import { useToast } from "../../context/ToastContext";
+import ModelViewer3D from "../ModelViewer3D";
 
 // Import local generated high-resolution assets
 import benchyImg from "../../assets/popular/benchy.jpg";
@@ -215,6 +216,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
   const [selectedCategory, setSelectedCategory] = useState("ALL DESIGNS");
   const [dispatchedId, setDispatchedId] = useState(null);
   const [inspectingDesign, setInspectingDesign] = useState(null);
+  const [modalViewMode, setModalViewMode] = useState("3d"); // "3d" or "photo"
   const [quantities, setQuantities] = useState({});
 
   // Modals state
@@ -617,14 +619,15 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                 className="bg-[#141414] border border-[#333333] rounded-[1px] overflow-hidden flex flex-col justify-between group hover:border-[#FF5A00] transition-all duration-300 shadow-sm"
               >
                 <div>
-                  {/* High-Resolution Photography Container */}
+                  {/* High-Resolution Photography / 3D Specimen Container */}
                   <div
                     onClick={() => {
                       sound.playClick();
+                      setModalViewMode("3d");
                       setInspectingDesign(design);
                     }}
                     className="relative aspect-square w-full overflow-hidden bg-[#0A0A0A] border-b border-[#262626] cursor-pointer"
-                    title="Click to view full technical inspection datasheet"
+                    title="Click to view interactive 3D WebGL model & datasheet"
                   >
                     <img
                       src={design.image}
@@ -638,8 +641,13 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
 
                     {/* Top Badges: Technology, Model Code & Edit Button */}
                     <div className="absolute top-3 inset-x-3 flex items-center justify-between font-mono text-[10px]">
-                      <span className="bg-[#111111]/90 backdrop-blur-md text-[#FF5A00] border border-[#FF5A00]/40 px-2 py-0.5 rounded-[1px] font-bold uppercase">
-                        [{design.technology}]
+                      <span className="bg-[#111111]/90 backdrop-blur-md text-[#FF5A00] border border-[#FF5A00]/40 px-2 py-0.5 rounded-[1px] font-bold uppercase flex items-center gap-1.5">
+                        <span>[{design.technology}]</span>
+                        <span className="text-white/40">|</span>
+                        <span className="text-[#22C55E] flex items-center gap-0.5">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse inline-block" />
+                          3D CAD
+                        </span>
                       </span>
                       <div className="flex items-center gap-1.5">
                         <button
@@ -661,9 +669,10 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                     </div>
 
                     {/* Inspect Badge Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                      <span className="bg-[#111111]/95 border border-[#FF5A00] text-[#FF5A00] font-mono text-[11px] px-3 py-1.5 rounded-[1px] uppercase tracking-wider font-bold shadow-xl">
-                        [ 🔍 INSPECT TECHNICAL DATASHEET ]
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
+                      <span className="bg-[#111111]/95 border border-[#FF5A00] text-[#FF5A00] font-mono text-[11px] px-3 py-1.5 rounded-[1px] uppercase tracking-wider font-bold shadow-xl flex items-center gap-1.5">
+                        <span>🧊</span>
+                        <span>[ INSPECT 3D MODEL & DATASHEET ]</span>
                       </span>
                     </div>
 
@@ -818,11 +827,12 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                       type="button"
                       onClick={() => {
                         sound.playClick();
+                        setModalViewMode("3d");
                         setInspectingDesign(design);
                       }}
-                      className="font-mono text-[10px] text-[#A1A1AA] hover:text-white transition-colors cursor-pointer"
+                      className="font-mono text-[10px] text-[#A1A1AA] hover:text-[#FF5A00] transition-colors cursor-pointer flex items-center gap-1"
                     >
-                      Full Datasheet ↗
+                      <span>🧊 3D Preview ↗</span>
                     </button>
                   </div>
                 </div>
@@ -1406,19 +1416,66 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
 
             {/* Modal Content */}
             <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-8">
-              {/* Left Column: Image with Grid Overlay */}
-              <div className="md:col-span-5 space-y-4">
-                <div className="relative aspect-square w-full rounded-[1px] overflow-hidden border border-[#333333] bg-[#0A0A0A]">
-                  <img
-                    src={inspectingDesign.image}
-                    alt={inspectingDesign.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 border border-[#FF5A00]/20 pointer-events-none" />
-                  <span className="absolute bottom-2 left-2 font-mono text-[9px] bg-black/80 px-2 py-0.5 border border-[#333333] text-white">
-                    VERIFIED AS-BUILT SPECIMEN
-                  </span>
+              {/* Left Column: Interactive 3D WebGL Model / Photography Toggle */}
+              <div className="md:col-span-5 space-y-3">
+                {/* View Mode Switcher */}
+                <div className="flex border border-[#333333] bg-[#0F0F0F] p-0.5 rounded-[1px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setModalViewMode("3d");
+                    }}
+                    className={`flex-1 py-1.5 px-2 font-mono text-[10px] uppercase font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer rounded-[1px] ${
+                      modalViewMode === "3d"
+                        ? "bg-[#FF5A00] text-black shadow"
+                        : "text-[#A1A1AA] hover:text-white"
+                    }`}
+                  >
+                    <span>🧊</span> 3D WebGL CAD
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setModalViewMode("photo");
+                    }}
+                    className={`flex-1 py-1.5 px-2 font-mono text-[10px] uppercase font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer rounded-[1px] ${
+                      modalViewMode === "photo"
+                        ? "bg-[#2A2A2A] text-white shadow"
+                        : "text-[#71717A] hover:text-white"
+                    }`}
+                  >
+                    <span>📷</span> Specimen Macro
+                  </button>
                 </div>
+
+                {modalViewMode === "3d" ? (
+                  <div className="relative w-full rounded-[1px] overflow-hidden border border-[#333333] bg-[#0A0A0A]">
+                    <ModelViewer3D
+                      modelType={inspectingDesign.id || inspectingDesign.title}
+                      fileName={inspectingDesign.filename}
+                      dimensions={inspectingDesign.dimensions}
+                      materialId={inspectingDesign.recommendedMaterialId || "pa-cf"}
+                      technology={inspectingDesign.technology || "FDM"}
+                      height="360px"
+                      showControls={true}
+                      interactive={true}
+                    />
+                  </div>
+                ) : (
+                  <div className="relative aspect-square w-full rounded-[1px] overflow-hidden border border-[#333333] bg-[#0A0A0A]">
+                    <img
+                      src={inspectingDesign.image}
+                      alt={inspectingDesign.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 border border-[#FF5A00]/20 pointer-events-none" />
+                    <span className="absolute bottom-2 left-2 font-mono text-[9px] bg-black/80 px-2 py-0.5 border border-[#333333] text-white">
+                      VERIFIED AS-BUILT SPECIMEN
+                    </span>
+                  </div>
+                )}
 
                 <div className="bg-[#111111] p-3 border border-[#262626] font-mono text-[11px] space-y-1.5">
                   <div className="flex justify-between">
