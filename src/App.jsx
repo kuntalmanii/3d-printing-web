@@ -19,6 +19,7 @@
  */
 
 import { useState, useEffect } from "react";
+import HeroSection from "./components/sections/HeroSection";
 import UserPanel from "./components/UserPanel";
 import ExecutiveHero from "./components/sections/ExecutiveHero";
 import PopularDesignsSection from "./components/sections/PopularDesignsSection";
@@ -466,7 +467,18 @@ function MainApplicationShell() {
       {/* ═════════════════════════════════════════════════════════════════════
           CLIENT PRODUCTION WORKSPACE (HOME ROUTE)
       ═════════════════════════════════════════════════════════════════════ */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 space-y-12">
+      {/* 1. Grand Atmospheric Three.js WebGL 3D Hero Landing Section */}
+      <HeroSection
+        onNavigateTrack={() => {
+          sound.playClick();
+          window.location.hash = "#/track";
+        }}
+        onScrollTo={handleScrollTo}
+        hideNav={true}
+      />
+
+      {/* 2. Client Production Workspace & Catalog Modules */}
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-12">
         {/* Executive Overview Header */}
         <ExecutiveHero fleet={fleet} onScrollTo={handleScrollTo} />
 

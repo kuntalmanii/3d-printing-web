@@ -15,6 +15,7 @@
 import { useRef, useMemo, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { sound } from "../../utils/soundEffects";
 
 /* ═══════════════════════════════════════════════════════════════
    SCENE CONSTANTS
@@ -238,7 +239,7 @@ const TELEMETRY = [
 /* ═══════════════════════════════════════════════════════════════
    5. HERO SECTION — MAIN EXPORT
 ═══════════════════════════════════════════════════════════════ */
-export default function HeroSection({ onNavigateTrack }) {
+export default function HeroSection({ onNavigateTrack, onScrollTo, hideNav = true }) {
   return (
     <section
       className="relative min-h-screen flex flex-col bg-[#111111] overflow-hidden"
@@ -281,88 +282,101 @@ export default function HeroSection({ onNavigateTrack }) {
         }}
       />
 
-      {/* ── [z:10] NAVIGATION ──────────────────────────────── */}
-      <nav
-        className="relative z-10 flex items-center justify-between px-6 md:px-10 py-4 border-b border-[#333333]"
-        role="navigation"
-        aria-label="Main navigation"
-      >
-        {/* Brand + fleet status */}
-        <div className="flex items-center gap-5">
-          <span className="font-sans font-semibold text-[15px] text-white tracking-wider leading-none select-none">
-            NEXUS // 3D
-          </span>
-
-          <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-[#333333]">
-            {/* Pulsing status dot */}
-            <span
-              className="block w-[7px] h-[7px] rounded-full bg-[#FF5A00] flex-shrink-0"
-              style={{ animation: "pulse-orange 2s cubic-bezier(0.4,0,0.6,1) infinite" }}
-              aria-hidden="true"
-            />
-            <span className="font-mono text-[11px] text-[#A1A1AA] tracking-[0.08em]">
-              [ FLEET ONLINE: 12 BEDS ACTIVE ]
+      {/* ── [z:10] NAVIGATION (Shown only if hideNav is false) ──────────────── */}
+      {!hideNav && (
+        <nav
+          className="relative z-10 flex items-center justify-between px-6 md:px-10 py-4 border-b border-[#333333]"
+          role="navigation"
+          aria-label="Main navigation"
+        >
+          {/* Brand + fleet status */}
+          <div className="flex items-center gap-5">
+            <span className="font-sans font-semibold text-[15px] text-white tracking-wider leading-none select-none">
+              NEXUS // 3D
             </span>
-          </div>
-        </div>
 
-        {/* Nav links */}
-        <ul className="hidden md:flex items-center gap-8" role="list">
-          {NAV_LINKS.map((link) => (
-            <li key={link}>
-              <a
-                href={
-                  link === "INSTANT QUOTE"
-                    ? "#quote-calculator"
-                    : link === "MATERIALS"
-                    ? "#materials-section"
-                    : link === "CAPABILITIES"
-                    ? "#model-uploader"
-                    : link === "TRACK ORDER"
-                    ? "#/track"
-                    : "#"
-                }
-                onClick={(e) => {
-                  if (link === "INSTANT QUOTE") {
-                    e.preventDefault();
-                    document.getElementById("quote-calculator")?.scrollIntoView({ behavior: "smooth" });
-                  } else if (link === "MATERIALS") {
-                    e.preventDefault();
-                    document.getElementById("materials-section")?.scrollIntoView({ behavior: "smooth" });
-                  } else if (link === "CAPABILITIES") {
-                    e.preventDefault();
-                    document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" });
-                  } else if (link === "TRACK ORDER") {
-                    e.preventDefault();
-                    if (onNavigateTrack) {
-                      onNavigateTrack();
-                    } else {
-                      window.location.hash = "#/track";
-                    }
+            <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-[#333333]">
+              <span
+                className="block w-[7px] h-[7px] rounded-full bg-[#FF5A00] flex-shrink-0"
+                style={{ animation: "pulse-orange 2s cubic-bezier(0.4,0,0.6,1) infinite" }}
+                aria-hidden="true"
+              />
+              <span className="font-mono text-[11px] text-[#A1A1AA] tracking-[0.08em]">
+                [ FLEET ONLINE: 12 BEDS ACTIVE ]
+              </span>
+            </div>
+          </div>
+
+          {/* Nav links */}
+          <ul className="hidden md:flex items-center gap-8" role="list">
+            {NAV_LINKS.map((link) => (
+              <li key={link}>
+                <a
+                  href={
+                    link === "INSTANT QUOTE"
+                      ? "#user-panel"
+                      : link === "MATERIALS"
+                      ? "#materials-section"
+                      : link === "CAPABILITIES"
+                      ? "#popular-designs"
+                      : link === "TRACK ORDER"
+                      ? "#/track"
+                      : "#"
                   }
-                }}
-                className={`transition-all duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#FF5A00] focus-visible:outline-offset-4 ${
-                  link === "TRACK ORDER"
-                    ? "font-mono text-[11px] text-[#FF5A00] hover:text-white bg-[#FF5A00]/10 hover:bg-[#FF5A00]/20 px-3 py-1.5 border border-[#FF5A00]/40 flex items-center gap-1.5 tracking-wider cursor-pointer font-bold shadow-sm"
-                    : "font-sans font-medium text-[11px] tracking-[0.14em] uppercase text-[#A1A1AA] hover:text-[#FF5A00]"
-                }`}
-              >
-                {link === "TRACK ORDER" ? (
-                  <>
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse" />
-                    [ TRACK ORDER ↗ ]
-                  </>
-                ) : (
-                  link
-                )}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </nav>
+                  onClick={(e) => {
+                    if (link === "INSTANT QUOTE") {
+                      e.preventDefault();
+                      if (onScrollTo) {
+                        onScrollTo("user-panel");
+                      } else {
+                        document.getElementById("user-panel")?.scrollIntoView({ behavior: "smooth" });
+                      }
+                    } else if (link === "MATERIALS") {
+                      e.preventDefault();
+                      if (onScrollTo) {
+                        onScrollTo("materials-section");
+                      } else {
+                        document.getElementById("materials-section")?.scrollIntoView({ behavior: "smooth" });
+                      }
+                    } else if (link === "CAPABILITIES") {
+                      e.preventDefault();
+                      if (onScrollTo) {
+                        onScrollTo("popular-designs");
+                      } else {
+                        document.getElementById("popular-designs")?.scrollIntoView({ behavior: "smooth" });
+                      }
+                    } else if (link === "TRACK ORDER") {
+                      e.preventDefault();
+                      if (onNavigateTrack) {
+                        onNavigateTrack();
+                      } else {
+                        window.location.hash = "#/track";
+                      }
+                    }
+                  }}
+                  className={`transition-all duration-150 focus-visible:outline focus-visible:outline-1 focus-visible:outline-[#FF5A00] focus-visible:outline-offset-4 ${
+                    link === "TRACK ORDER"
+                      ? "font-mono text-[11px] text-[#FF5A00] hover:text-white bg-[#FF5A00]/10 hover:bg-[#FF5A00]/20 px-3 py-1.5 border border-[#FF5A00]/40 flex items-center gap-1.5 tracking-wider cursor-pointer font-bold shadow-sm"
+                      : "font-sans font-medium text-[11px] tracking-[0.14em] uppercase text-[#A1A1AA] hover:text-[#FF5A00]"
+                  }`}
+                >
+                  {link === "TRACK ORDER" ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse" />
+                      [ TRACK ORDER ↗ ]
+                    </>
+                  ) : (
+                    link
+                  )}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
 
       {/* ── [z:10] HERO COPY ────────────────────────────────── */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 md:px-10 lg:px-20 py-20 xl:py-28">
+      <div className="relative z-10 flex-1 flex flex-col justify-center px-6 md:px-10 lg:px-20 py-16 xl:py-24">
 
         {/* Eyebrow label */}
         <p
@@ -403,35 +417,78 @@ export default function HeroSection({ onNavigateTrack }) {
           {/* Primary CTA */}
           <button
             id="cta-upload-quote"
-            onClick={() => document.getElementById("model-uploader")?.scrollIntoView({ behavior: "smooth" })}
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onScrollTo) {
+                onScrollTo("user-panel");
+              } else {
+                document.getElementById("user-panel")?.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
             className="
               inline-flex items-center justify-center
               bg-[#FF5A00] hover:bg-[#D94D00]
               border border-[#FF5A00] hover:border-[#D94D00]
-              text-white font-mono text-[11px] tracking-[0.12em] uppercase
-              px-6 py-3 rounded-none
+              text-black font-mono text-[11px] font-bold tracking-[0.12em] uppercase
+              px-6 py-3.5 rounded-[1px]
               transition-all duration-150
               active:scale-[0.98]
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A00]
+              cursor-pointer shadow-[0_0_20px_rgba(255,90,0,0.35)]
             "
           >
             [ UPLOAD 3D FILE / INSTANT QUOTE ]
           </button>
 
-          {/* Secondary CTA */}
+          {/* Curated Benchmark Vault CTA */}
           <button
-            id="cta-tolerances"
-            onClick={() => document.getElementById("materials-section")?.scrollIntoView({ behavior: "smooth" })}
+            id="cta-vault"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onScrollTo) {
+                onScrollTo("popular-designs");
+              } else {
+                document.getElementById("popular-designs")?.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
             className="
               inline-flex items-center justify-center
-              bg-transparent
+              bg-[#1A1A1A] hover:bg-[#252525]
               border border-[#333333] hover:border-[#FF5A00]
               text-white hover:text-[#FF5A00]
               font-mono text-[11px] tracking-[0.12em] uppercase
-              px-6 py-3 rounded-none
+              px-6 py-3.5 rounded-[1px]
               transition-all duration-150
               active:scale-[0.98]
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF5A00]
+              cursor-pointer
+            "
+          >
+            [ CURATED BENCHMARK VAULT ]
+          </button>
+
+          {/* Secondary CTA */}
+          <button
+            id="cta-tolerances"
+            type="button"
+            onClick={() => {
+              sound.playClick();
+              if (onScrollTo) {
+                onScrollTo("materials-section");
+              } else {
+                document.getElementById("materials-section")?.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
+            className="
+              inline-flex items-center justify-center
+              bg-transparent
+              border border-[#333333] hover:border-[#A1A1AA]
+              text-[#A1A1AA] hover:text-white
+              font-mono text-[11px] tracking-[0.12em] uppercase
+              px-6 py-3.5 rounded-[1px]
+              transition-all duration-150
+              active:scale-[0.98]
+              cursor-pointer
             "
           >
             [ EXPLORE TOLERANCES ]
