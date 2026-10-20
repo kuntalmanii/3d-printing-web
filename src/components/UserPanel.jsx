@@ -84,7 +84,7 @@ const DEFAULT_PRESET_FILE = {
   source: "CAD Assembly Benchmark",
 };
 
-export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder }) {
+export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedDesign = null }) {
   // Active Tab state: "slice" | "telemetry"
   const [activeTab, setActiveTab] = useState("slice");
 
@@ -97,6 +97,26 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder }) {
   const [layerHeight, setLayerHeight] = useState("0.16");
   const [successNotification, setSuccessNotification] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Sync loaded design from popular designs vault during render
+  const [prevLoadedDesignId, setPrevLoadedDesignId] = useState(null);
+  if (loadedDesign && loadedDesign.id !== prevLoadedDesignId) {
+    setPrevLoadedDesignId(loadedDesign.id);
+    setSelectedFile({
+      name: loadedDesign.filename,
+      sizeMB: loadedDesign.sizeMB,
+      dimensions: loadedDesign.dimensions,
+      volumeCm3: loadedDesign.volumeCm3,
+      source: `Popular Vault // ${loadedDesign.title}`,
+    });
+    if (loadedDesign.technology) {
+      setTechnology(loadedDesign.technology);
+    }
+    if (loadedDesign.recommendedMaterialId) {
+      setMaterialId(loadedDesign.recommendedMaterialId);
+    }
+    setActiveTab("slice");
+  }
 
   // TAB 02: Telemetry & Tracking State
   const effectiveOrders = useMemo(() => {

@@ -21,6 +21,7 @@
 import { useState, useEffect } from "react";
 import UserPanel from "./components/UserPanel";
 import AdminPanel from "./components/AdminPanel";
+import PopularDesignsSection from "./components/sections/PopularDesignsSection";
 import TrackPage from "./pages/TrackPage";
 import { INITIAL_ORDERS, INITIAL_FLEET, INITIAL_INVENTORY } from "./data/mockData";
 
@@ -30,6 +31,15 @@ export default function App() {
   const [fleet, setFleet] = useState(INITIAL_FLEET);
   const [inventory, setInventory] = useState(INITIAL_INVENTORY);
   const [currentView, setCurrentView] = useState("USER"); // "USER" | "ADMIN"
+  const [loadedDesign, setLoadedDesign] = useState(null);
+
+  const handleLoadDesign = (design) => {
+    setLoadedDesign(design);
+    setCurrentView("USER");
+    setTimeout(() => {
+      document.getElementById("user-panel")?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
+  };
 
   // Append new customer order into shared queue, allocate fleet rig, & deduct raw inventory
   const handleNewOrder = (newOrder) => {
@@ -234,8 +244,9 @@ export default function App() {
           4. DYNAMIC MAIN WORKSPACE
       ═════════════════════════════════════════════════════════════════════ */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-        <div className={currentView === "USER" ? "block" : "hidden"}>
-          <UserPanel orders={orders} onNewOrder={handleNewOrder} />
+        <div className={currentView === "USER" ? "block space-y-12" : "hidden"}>
+          <UserPanel orders={orders} onNewOrder={handleNewOrder} loadedDesign={loadedDesign} />
+          <PopularDesignsSection onLoadDesign={handleLoadDesign} onDirectDispatch={handleNewOrder} />
         </div>
 
         <div className={currentView === "ADMIN" ? "block" : "hidden"}>
