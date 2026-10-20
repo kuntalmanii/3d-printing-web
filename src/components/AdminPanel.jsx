@@ -40,23 +40,24 @@ export default function AdminPanel({
   // Tab State: "fleet" | "queue" | "inventory"
   const [activeTab, setActiveTab] = useState("fleet");
 
-  // Local fallback state for order status transitions if parent doesn't handle state directly
+  // Local fallback state for order status transitions only if parent onUpdateOrderStatus is not provided
   const [localOrderOverrides, setLocalOrderOverrides] = useState({});
 
   // Merge orders with local status updates
   const effectiveOrders = useMemo(() => {
     return (orders || []).map((ord) => {
-      if (localOrderOverrides[ord.id]) {
+      const overrideStatus = localOrderOverrides[ord.id];
+      if (overrideStatus && ord.status !== overrideStatus) {
         return {
           ...ord,
-          status: localOrderOverrides[ord.id],
+          status: overrideStatus,
           progress:
-            localOrderOverrides[ord.id] === "DISPATCHED"
+            overrideStatus === "DISPATCHED"
               ? 100
-              : localOrderOverrides[ord.id] === "POST_PROCESSING"
+              : overrideStatus === "POST_PROCESSING"
               ? 85
-              : localOrderOverrides[ord.id] === "PRINTING"
-              ? Math.max(25, ord.progress || 50)
+              : overrideStatus === "PRINTING"
+              ? Math.max(35, ord.progress || 50)
               : 0,
         };
       }
@@ -66,13 +67,13 @@ export default function AdminPanel({
 
   // Handle stage transition from interactive dropdown
   const handleStageChange = (orderId, newStatus) => {
-    setLocalOrderOverrides((prev) => ({
-      ...prev,
-      [orderId]: newStatus,
-    }));
-
     if (onUpdateOrderStatus) {
       onUpdateOrderStatus(orderId, newStatus);
+    } else {
+      setLocalOrderOverrides((prev) => ({
+        ...prev,
+        [orderId]: newStatus,
+      }));
     }
   };
 
