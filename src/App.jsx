@@ -18,7 +18,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import UserPanel from "./components/UserPanel";
 import AdminPanel from "./components/AdminPanel";
 import ExecutiveHero from "./components/sections/ExecutiveHero";
@@ -26,6 +26,7 @@ import PopularDesignsSection from "./components/sections/PopularDesignsSection";
 import MaterialsSection from "./components/sections/MaterialsSection";
 import TrackPage from "./pages/TrackPage";
 import CommandPalette from "./components/ui/CommandPalette";
+import AdminAuthModal from "./components/ui/AdminAuthModal";
 import { ToastProvider } from "./components/ui/Toast";
 import { INITIAL_ORDERS, INITIAL_FLEET, INITIAL_INVENTORY } from "./data/mockData";
 import { sound } from "./utils/soundEffects";
@@ -46,6 +47,21 @@ function MainApplicationShell() {
   const [currentView, setCurrentView] = useState("USER"); // "USER" | "ADMIN"
   const [loadedDesign, setLoadedDesign] = useState(null);
 
+  // Operator Authorization Clearance State
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
+    try {
+      return sessionStorage.getItem("nexus_operator_authenticated") === "true";
+    } catch {
+      return false;
+    }
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const isAdminAuthenticatedRef = useRef(isAdminAuthenticated);
+
+  useEffect(() => {
+    isAdminAuthenticatedRef.current = isAdminAuthenticated;
+  }, [isAdminAuthenticated]);
+
   // Command Palette & Sound State
   const [isCommandOpen, setIsCommandOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -63,7 +79,42 @@ function MainApplicationShell() {
     return () => clearInterval(timer);
   }, []);
 
-  // Global Keyboard Shortcuts (U, A, 1, 2, Cmd+K)
+  // Protected View Switcher: Clients cannot enter Operator Console without Level 4 clearance
+  const handleSwitchView = (view) => {
+    if (view === "ADMIN") {
+      if (isAdminAuthenticatedRef.current) {
+        setCurrentView("ADMIN");
+      } else {
+        setIsAuthModalOpen(true);
+      }
+    } else {
+      setCurrentView("USER");
+    }
+  };
+
+  const handleAuthSuccess = () => {
+    setIsAdminAuthenticated(true);
+    try {
+      sessionStorage.setItem("nexus_operator_authenticated", "true");
+    } catch {
+      // In private browsing mode where sessionStorage might throw
+    }
+    setIsAuthModalOpen(false);
+    setCurrentView("ADMIN");
+  };
+
+  const handleLockConsole = () => {
+    setIsAdminAuthenticated(false);
+    try {
+      sessionStorage.removeItem("nexus_operator_authenticated");
+    } catch {
+      // In private browsing mode where sessionStorage might throw
+    }
+    setCurrentView("USER");
+    sound.playClick();
+  };
+
+  // Global Keyboard Shortcuts (U, A, Cmd+K)
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       // Don't trigger if user is typing in an input
@@ -77,10 +128,10 @@ function MainApplicationShell() {
 
       if (e.key.toLowerCase() === "u") {
         sound.playClick();
-        setCurrentView("USER");
+        handleSwitchView("USER");
       } else if (e.key.toLowerCase() === "a") {
         sound.playClick();
-        setCurrentView("ADMIN");
+        handleSwitchView("ADMIN");
       }
     };
 
@@ -384,7 +435,7 @@ function MainApplicationShell() {
                 id="btn-view-client"
                 onClick={() => {
                   sound.playClick();
-                  setCurrentView("USER");
+                  handleSwitchView("USER");
                 }}
                 className={`font-mono text-xs md:text-[13px] px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold ${
                   currentView === "USER"
@@ -400,15 +451,25 @@ function MainApplicationShell() {
                 id="btn-view-operator"
                 onClick={() => {
                   sound.playClick();
-                  setCurrentView("ADMIN");
+                  handleSwitchView("ADMIN");
                 }}
-                className={`font-mono text-xs md:text-[13px] px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold ${
+                className={`font-mono text-xs md:text-[13px] px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold flex items-center gap-1.5 ${
                   currentView === "ADMIN"
                     ? "bg-[#FF5A00] text-black border-[#FF5A00] font-bold shadow-sm"
                     : "border-transparent text-[#A1A1AA] hover:text-white hover:border-[#555555]"
                 }`}
+                title={
+                  isAdminAuthenticated
+                    ? "Fleet Operator Console (Level 4 Active Session)"
+                    : "Fleet Operator Console (Restricted // Level 4 Authentication Required)"
+                }
               >
-                [ OPERATOR CONSOLE ]
+                {!isAdminAuthenticated && (
+                  <span className="text-[11px] opacity-75" aria-hidden="true">
+                    🔒
+                  </span>
+                )}
+                <span>[ OPERATOR CONSOLE ]</span>
               </button>
             </nav>
           </div>
@@ -433,7 +494,7 @@ function MainApplicationShell() {
           <MaterialsSection />
         </div>
 
-        <div className={currentView === "ADMIN" ? "block" : "hidden"}>
+        <div className={currentView === "ADMIN" && isAdminAuthenticated ? "block" : "hidden"}>
           <AdminPanel
             fleet={fleet}
             orders={orders}
@@ -441,6 +502,7 @@ function MainApplicationShell() {
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onRestockInventory={handleRestockInventory}
             onEmergencyStop={handleEmergencyStop}
+            onLockConsole={handleLockConsole}
           />
         </div>
       </main>
@@ -482,14 +544,22 @@ function MainApplicationShell() {
         isOpen={isCommandOpen}
         onClose={() => setIsCommandOpen(false)}
         orders={orders}
+        isAdminAuthenticated={isAdminAuthenticated}
         onSelectOrder={(_orderId) => {
           setCurrentView("USER");
           setTimeout(() => {
             document.getElementById("user-panel")?.scrollIntoView({ behavior: "smooth" });
           }, 50);
         }}
-        onSwitchView={(view) => setCurrentView(view)}
+        onSwitchView={handleSwitchView}
         onSelectDesign={(design) => handleLoadDesign(design)}
+      />
+
+      {/* Operator Security Clearance Interlock */}
+      <AdminAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );

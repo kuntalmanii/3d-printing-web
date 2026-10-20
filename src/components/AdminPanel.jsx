@@ -42,6 +42,7 @@ export default function AdminPanel({
   onUpdateOrderStatus,
   onRestockInventory,
   onEmergencyStop,
+  onLockConsole,
 }) {
   const { addToast } = useToast();
 
@@ -189,6 +190,21 @@ export default function AdminPanel({
             >
               <span>{isHalted ? "✓ RESUME FLEET" : "🚨 FLEET E-STOP"}</span>
             </button>
+
+            {/* Operator Lock Console Button */}
+            {onLockConsole && (
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onLockConsole();
+                }}
+                className="bg-[#181818] hover:bg-[#252525] text-[#A1A1AA] hover:text-white border border-[#333333] hover:border-[#EF4444] px-3 py-1.5 rounded-[1px] font-bold uppercase transition-colors cursor-pointer flex items-center gap-1.5"
+                title="Lock Operator Console and return to Client Interface"
+              >
+                <span>🔒 LOCK CONSOLE</span>
+              </button>
+            )}
 
             <div className="bg-[#111111] border border-[#333333] px-3 py-1.5 rounded-[1px] flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00]" />

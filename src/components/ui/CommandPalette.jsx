@@ -13,6 +13,7 @@ export default function CommandPalette({
   isOpen,
   onClose,
   orders = [],
+  isAdminAuthenticated = false,
   onSelectOrder,
   onSwitchView,
   onSelectDesign,
@@ -138,10 +139,21 @@ export default function CommandPalette({
                 className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-[#22C55E] rounded-full" />
-                  <span className="text-white group-hover:text-[#FF5A00] font-semibold">
-                    SWITCH TO FLEET OPERATOR CONSOLE
-                  </span>
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isAdminAuthenticated ? "bg-[#22C55E]" : "bg-[#EF4444]"
+                    }`}
+                  />
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-white group-hover:text-[#FF5A00] font-semibold">
+                      SWITCH TO FLEET OPERATOR CONSOLE
+                    </span>
+                    {!isAdminAuthenticated && (
+                      <span className="text-[9px] text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/30 px-1.5 py-0.2 rounded-[1px] font-bold">
+                        🔒 LEVEL 4 AUTH REQ
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <kbd className="text-[10px] text-[#71717A] bg-[#1a1a1a] px-1.5 py-0.5 border border-[#333333]">
                   KEY: A
