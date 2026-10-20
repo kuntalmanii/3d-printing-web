@@ -163,23 +163,60 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   // Success Confirmation State
   const [successNotification, setSuccessNotification] = useState(null);
 
+  // CAD Design & Dimension Editor State
+  const [designScale, setDesignScale] = useState({ x: 100, y: 100, z: 100 });
+  const [isUniformScale, setIsUniformScale] = useState(true);
+  const [rotation, setRotation] = useState({ x: 0, y: 0, z: 0 }); // degrees
+  const [wallLoops, setWallLoops] = useState(3); // 2, 3, 4, 6
+  const [isMirroredX, setIsMirroredX] = useState(false);
+  const [isMirroredY, setIsMirroredY] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(true);
+  const [customModelName, setCustomModelName] = useState("");
+
   // Sync loaded design from popular designs vault during render
-  const [prevLoadedDesignId, setPrevLoadedDesignId] = useState(null);
-  if (loadedDesign && loadedDesign.id !== prevLoadedDesignId) {
-    setPrevLoadedDesignId(loadedDesign.id);
+  const [prevLoadedDesignKey, setPrevLoadedDesignKey] = useState(null);
+  const currentLoadKey = loadedDesign
+    ? `${loadedDesign.id || "design"}_${loadedDesign._loadSeq || 0}`
+    : null;
+
+  if (loadedDesign && currentLoadKey !== prevLoadedDesignKey) {
+    setPrevLoadedDesignKey(currentLoadKey);
     setSelectedFile({
-      name: loadedDesign.filename,
-      sizeMB: loadedDesign.sizeMB,
-      dimensions: loadedDesign.dimensions,
-      volumeCm3: loadedDesign.volumeCm3,
+      name: loadedDesign.filename || `${loadedDesign.title.toLowerCase().replace(/\s+/g, "_")}.stl`,
+      sizeMB: loadedDesign.sizeMB || 3.5,
+      dimensions: loadedDesign.dimensions || { x: 75, y: 55, z: 35 },
+      volumeCm3: loadedDesign.volumeCm3 || 42,
       source: `Popular Vault // ${loadedDesign.title}`,
     });
+    setDesignScale({ x: 100, y: 100, z: 100 });
+    setRotation({ x: 0, y: 0, z: 0 });
+    setIsMirroredX(false);
+    setIsMirroredY(false);
+    setCustomModelName("");
+    setIsEditorOpen(true);
+
     if (loadedDesign.technology) {
       setTechnology(loadedDesign.technology);
     }
-    if (loadedDesign.recommendedMaterialId) {
-      setMaterialId(loadedDesign.recommendedMaterialId);
+    const matId =
+      loadedDesign.recommendedMaterialId === "tough-resin"
+        ? "resin-tough"
+        : loadedDesign.recommendedMaterialId ||
+          (loadedDesign.technology === "SLA" ? "resin-tough" : "pa-cf");
+    setMaterialId(matId);
+
+    if (loadedDesign.specs?.infill) {
+      const parsedInfill = parseInt(loadedDesign.specs.infill, 10);
+      if (!isNaN(parsedInfill)) setInfill(parsedInfill);
+      if (loadedDesign.specs.infill.includes("Gyroid")) setInfillPattern("Gyroid");
+      else if (loadedDesign.specs.infill.includes("Honeycomb")) setInfillPattern("Honeycomb");
+      else if (loadedDesign.specs.infill.includes("Grid")) setInfillPattern("Grid");
     }
+    if (loadedDesign.specs?.layerHeight) {
+      const lh = loadedDesign.specs.layerHeight.replace(" mm", "");
+      if (["0.08", "0.16", "0.24"].includes(lh)) setLayerHeight(lh);
+    }
+
     setActiveTab("slice");
   }
 
@@ -207,16 +244,34 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
     }
   };
 
+  // Effective CAD Dimensions based on scale & orientation
+  const effectiveDims = useMemo(() => {
+    const base = selectedFile?.dimensions || { x: 80.0, y: 60.0, z: 40.0 };
+    return {
+      x: Number((base.x * (designScale.x / 100)).toFixed(1)),
+      y: Number((base.y * (designScale.y / 100)).toFixed(1)),
+      z: Number((base.z * (designScale.z / 100)).toFixed(1)),
+    };
+  }, [selectedFile, designScale]);
+
+  // Effective Volume based on 3-axis scaling
+  const effectiveVolume = useMemo(() => {
+    const baseVol = selectedFile?.volumeCm3 || 45.0;
+    const scaleFactor = (designScale.x / 100) * (designScale.y / 100) * (designScale.z / 100);
+    return Number((baseVol * scaleFactor).toFixed(1));
+  }, [selectedFile, designScale]);
+
   // Slicing Quotation Mathematics
   const quotation = useMemo(() => {
-    const vol = selectedFile?.volumeCm3 || 48.5;
-    const height = selectedFile?.dimensions?.z || 38.0;
+    const vol = effectiveVolume;
+    const height = effectiveDims.z;
     const density = activeMaterial.density;
     const costPerGram = activeMaterial.costPerGram;
 
-    // Mass in grams: shell accounts for ~22% solid perimeter, core scales with infill
+    // Mass in grams: shell accounts for wall loops, core scales with infill
     const infillFraction = infill / 100;
-    const effectiveFactor = infillFraction === 1.0 ? 1.0 : 0.22 + 0.78 * infillFraction;
+    const shellFraction = Math.min(0.55, 0.07 * wallLoops);
+    const effectiveFactor = infillFraction === 1.0 ? 1.0 : shellFraction + (1.0 - shellFraction) * infillFraction;
     const massGrams = Number((vol * effectiveFactor * density).toFixed(1));
 
     // Machine time heuristic in hours
@@ -259,7 +314,72 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
       priorityFee,
       totalPrice,
     };
-  }, [selectedFile, activeMaterial, infill, layerHeight, postProcessing, priorityMode]);
+  }, [
+    effectiveVolume,
+    effectiveDims.z,
+    activeMaterial,
+    infill,
+    wallLoops,
+    layerHeight,
+    postProcessing,
+    priorityMode,
+  ]);
+
+  // CAD Dimension & Scale Handlers
+  const handleUniformScaleChange = (newScalePct) => {
+    const clamped = Math.max(25, Math.min(300, newScalePct));
+    setDesignScale({ x: clamped, y: clamped, z: clamped });
+  };
+
+  const handleDimensionMmChange = (axis, newMm) => {
+    const base = selectedFile?.dimensions || { x: 80, y: 60, z: 40 };
+    const baseVal = base[axis] || 50;
+    const newPct = Math.max(25, Math.min(300, Math.round((newMm / baseVal) * 100)));
+
+    if (isUniformScale) {
+      setDesignScale({ x: newPct, y: newPct, z: newPct });
+    } else {
+      setDesignScale((prev) => ({ ...prev, [axis]: newPct }));
+    }
+  };
+
+  const handleRotateAxis = (axis, deltaDegrees) => {
+    sound.playClick();
+    setRotation((prev) => ({
+      ...prev,
+      [axis]: (prev[axis] + deltaDegrees + 360) % 360,
+    }));
+  };
+
+  const handleAutoOrientLayFlat = () => {
+    sound.playSuccess();
+    const base = selectedFile?.dimensions || { x: 80, y: 60, z: 40 };
+    if (base.z > base.x || base.z > base.y) {
+      setRotation({ x: 90, y: 0, z: 0 });
+    } else {
+      setRotation({ x: 0, y: 0, z: 0 });
+    }
+    addToast({
+      title: "Auto-Orient Applied",
+      message: "Model re-oriented to planar bed: minimal support material & maximum build adhesion.",
+      type: "info",
+    });
+  };
+
+  const handleResetCadSpecs = () => {
+    sound.playClick();
+    setDesignScale({ x: 100, y: 100, z: 100 });
+    setRotation({ x: 0, y: 0, z: 0 });
+    setWallLoops(3);
+    setIsMirroredX(false);
+    setIsMirroredY(false);
+    setCustomModelName("");
+    addToast({
+      title: "CAD Geometry Reset",
+      message: "Restored 1:1 original blueprint dimensions and standard orientation.",
+      type: "info",
+    });
+  };
 
   // Load sample model
   const handleLoadSample = (sample) => {
@@ -271,12 +391,20 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
       volumeCm3: sample.volumeCm3,
       source: `Industrial Preset // ${sample.title}`,
     });
+    setDesignScale({ x: 100, y: 100, z: 100 });
+    setRotation({ x: 0, y: 0, z: 0 });
+    setWallLoops(3);
+    setIsMirroredX(false);
+    setIsMirroredY(false);
+    setCustomModelName("");
+    setIsEditorOpen(true);
+
     setTechnology(sample.technology);
     setMaterialId(sample.materialId);
     setLayerProgress(100);
     addToast({
       title: "Sample Model Loaded",
-      message: `${sample.title} (${sample.dimensions.x}×${sample.dimensions.y}×${sample.dimensions.z}mm) configured into slicer.`,
+      message: `${sample.title} (${sample.dimensions.x}×${sample.dimensions.y}×${sample.dimensions.z}mm) configured into slicer & CAD Editor.`,
       type: "info",
     });
   };
@@ -301,12 +429,19 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
       volumeCm3: Math.max(8.0, volumeCm3),
       extension: `.${extension}`,
     });
+    setDesignScale({ x: 100, y: 100, z: 100 });
+    setRotation({ x: 0, y: 0, z: 0 });
+    setWallLoops(3);
+    setIsMirroredX(false);
+    setIsMirroredY(false);
+    setCustomModelName("");
+    setIsEditorOpen(true);
     setLayerProgress(100);
     setSuccessNotification(null);
 
     addToast({
       title: "CAD Geometry Ingested",
-      message: `${file.name} successfully parsed: ${x}×${y}×${z} mm bounds computed.`,
+      message: `${file.name} successfully parsed: ${x}×${y}×${z} mm bounds computed. CAD Editor ready.`,
       type: "success",
     });
   };
@@ -328,6 +463,9 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   const handleDiscardFile = () => {
     sound.playClick();
     setSelectedFile(null);
+    setDesignScale({ x: 100, y: 100, z: 100 });
+    setRotation({ x: 0, y: 0, z: 0 });
+    setCustomModelName("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -336,13 +474,17 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
     sound.playSuccess();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newOrderId = `NX-${randomSuffix}`;
+    const activeFileName = customModelName.trim() || selectedFile?.name || "unnamed_cad_part.stl";
 
     const newOrderPayload = {
       id: newOrderId,
       client: "Client Direct",
-      filename: selectedFile?.name || "unnamed_cad_part.stl",
-      volumeCm3: selectedFile?.volumeCm3 || 48.5,
-      dimensions: selectedFile?.dimensions || { x: 82, y: 64, z: 38 },
+      filename: activeFileName,
+      volumeCm3: effectiveVolume,
+      dimensions: effectiveDims,
+      scale: designScale,
+      rotation,
+      wallLoops,
       technology,
       material: activeMaterial.name,
       infill,
@@ -674,12 +816,17 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
                         </div>
                       </div>
 
-                      {/* Isometric Pulsating Wireframe Box Visualizer */}
+                      {/* Isometric Pulsating Wireframe Box Visualizer with Real CAD Transform */}
                       <div className="relative z-10 my-auto flex items-center justify-center">
                         <div
-                          className={`relative w-44 h-28 border border-[#FF5A00] rounded-[1px] flex items-center justify-center shadow-sm transition-all duration-300 ${
+                          className={`relative border border-[#FF5A00] rounded-[1px] flex items-center justify-center shadow-sm transition-all duration-300 ${
                             showWireframe ? "border-dashed bg-[#FF5A00]/5" : "border-solid bg-[#FF5A00]/15"
                           }`}
+                          style={{
+                            width: `${Math.max(110, Math.min(220, 160 * (effectiveDims.x / (selectedFile.dimensions?.x || 80))))}px`,
+                            height: `${Math.max(70, Math.min(160, 100 * (effectiveDims.y / (selectedFile.dimensions?.y || 60))))}px`,
+                            transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) rotateZ(${rotation.z}deg) scaleX(${isMirroredX ? -1 : 1}) scaleY(${isMirroredY ? -1 : 1})`,
+                          }}
                         >
                           {/* Inner perspective crosshairs */}
                           <div className="absolute inset-x-0 top-1/2 border-t border-[#FF5A00]/30 border-dotted" />
@@ -702,22 +849,24 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
                           {/* Pulsating Dimension Badge */}
                           <div className="bg-[#111111]/90 border border-[#FF5A00] px-2.5 py-1 rounded-[1px] font-mono text-center shadow">
                             <span className="text-[10px] text-[#A1A1AA] uppercase block font-semibold">
-                              BOUNDING ENVELOPE:
+                              {designScale.x !== 100 || designScale.y !== 100 || designScale.z !== 100
+                                ? `BOUNDS (${designScale.x}% SCALE):`
+                                : "BOUNDING ENVELOPE:"}
                             </span>
                             <span className="text-xs text-white font-bold tracking-wider">
-                              {selectedFile.dimensions.x} × {selectedFile.dimensions.y} × {selectedFile.dimensions.z} mm
+                              {effectiveDims.x} × {effectiveDims.y} × {effectiveDims.z} mm
                             </span>
                           </div>
 
                           {/* Axis Measurement Labels */}
                           <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 font-mono text-[9px] text-[#FF5A00]">
-                            X: {selectedFile.dimensions.x}mm
+                            X: {effectiveDims.x}mm
                           </span>
                           <span className="absolute -left-6 top-1/2 -translate-y-1/2 font-mono text-[9px] text-[#38BDF8] -rotate-90">
-                            Y: {selectedFile.dimensions.y}mm
+                            Y: {effectiveDims.y}mm
                           </span>
                           <span className="absolute -right-6 top-1/2 -translate-y-1/2 font-mono text-[9px] text-[#22C55E] rotate-90">
-                            Z: {selectedFile.dimensions.z}mm
+                            Z: {effectiveDims.z}mm
                           </span>
                         </div>
                       </div>
@@ -751,10 +900,392 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
 
                       {/* Viewport Bottom Telemetry Bar */}
                       <div className="relative z-10 flex items-center justify-between font-mono text-[9px] text-[#71717A] border-t border-[#222222] pt-1">
-                        <span>VOLUME: {selectedFile.volumeCm3} cm³</span>
+                        <span>VOLUME: {effectiveVolume} cm³</span>
                         <span>GRID: 10.0 mm</span>
-                        <span>ORIGIN: [0, 0, 0]</span>
+                        <span>ROT: [{rotation.x}°, {rotation.y}°, {rotation.z}°]</span>
                       </div>
+                    </div>
+
+                    {/* ═════════════════════════════════════════════════════════
+                        CAD GEOMETRY & DIMENSION EDITOR PANEL
+                    ═════════════════════════════════════════════════════════ */}
+                    <div className="border border-[#333333] bg-[#141414] rounded-[1px] overflow-hidden">
+                      {/* Accordion Toggle Header */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          sound.playClick();
+                          setIsEditorOpen(!isEditorOpen);
+                        }}
+                        className="w-full bg-[#181818] hover:bg-[#202020] border-b border-[#262626] p-3 flex items-center justify-between text-left transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <span className="text-base">✏️</span>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono text-xs text-[#FF5A00] font-bold uppercase tracking-wider">
+                                CAD DESIGN &amp; DIMENSION EDITOR
+                              </span>
+                              <span className="font-mono text-[9px] bg-[#FF5A00]/15 text-[#FF5A00] border border-[#FF5A00]/30 px-1.5 py-0.2 rounded-[1px] font-semibold">
+                                {designScale.x !== 100 || designScale.y !== 100 || designScale.z !== 100
+                                  ? `SCALED ${designScale.x}%`
+                                  : "1:1 CAD SCALE"}
+                              </span>
+                            </div>
+                            <span className="font-sans text-[11px] text-[#A1A1AA]">
+                              Uniform scaling, mm bounds, orientation &amp; perimeter loops
+                            </span>
+                          </div>
+                        </div>
+                        <span className="font-mono text-xs text-[#A1A1AA]">
+                          {isEditorOpen ? "[ COLLAPSE ▲ ]" : "[ EDIT DESIGN ✏️ ▼ ]"}
+                        </span>
+                      </button>
+
+                      {isEditorOpen && (
+                        <div className="p-4 space-y-4 font-mono animate-fade-in">
+                          {/* 1. Dimension Scaling Suite */}
+                          <div className="space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] text-white font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-[#FF5A00] rounded-full" />
+                                1. SCALE &amp; ENVELOPE DIMENSIONS (MM)
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playClick();
+                                  setIsUniformScale(!isUniformScale);
+                                }}
+                                className={`text-[10px] px-2 py-0.5 rounded-[1px] border font-semibold uppercase transition-colors ${
+                                  isUniformScale
+                                    ? "bg-[#FF5A00]/15 text-[#FF5A00] border-[#FF5A00]"
+                                    : "bg-[#222222] text-[#A1A1AA] border-[#333333] hover:text-white"
+                                }`}
+                              >
+                                {isUniformScale ? "🔒 UNIFORM (LOCKED)" : "🔓 INDEPENDENT"}
+                              </button>
+                            </div>
+
+                            {/* Scale Slider & Presets */}
+                            <div className="bg-[#111111] border border-[#262626] p-3 rounded-[1px] space-y-2">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-[#A1A1AA] text-[10px] uppercase">
+                                  GLOBAL SCALE FACTOR:
+                                </span>
+                                <span className="text-white font-black text-sm">
+                                  {designScale.x}%
+                                </span>
+                              </div>
+
+                              <input
+                                type="range"
+                                min="25"
+                                max="300"
+                                step="5"
+                                value={designScale.x}
+                                onChange={(e) => handleUniformScaleChange(Number(e.target.value))}
+                                className="w-full accent-[#FF5A00] cursor-pointer h-1.5 bg-[#222222] rounded-none"
+                              />
+
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {[50, 75, 100, 125, 150, 200].map((pct) => (
+                                  <button
+                                    key={pct}
+                                    type="button"
+                                    onClick={() => handleUniformScaleChange(pct)}
+                                    className={`text-[9px] px-2 py-0.5 rounded-[1px] border transition-colors ${
+                                      designScale.x === pct && isUniformScale
+                                        ? "bg-[#FF5A00] text-black border-[#FF5A00] font-bold"
+                                        : "bg-[#181818] text-[#A1A1AA] border-[#2E2E2E] hover:text-white"
+                                    }`}
+                                  >
+                                    {pct}%{pct === 100 ? " (1:1)" : ""}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* 3-Axis Millimeter Inputs */}
+                            <div className="grid grid-cols-3 gap-2">
+                              {/* X Axis */}
+                              <div className="bg-[#111111] border border-[#262626] p-2 rounded-[1px]">
+                                <div className="flex justify-between items-center text-[10px] mb-1">
+                                  <span className="text-[#FF5A00] font-bold">X (WIDTH):</span>
+                                  <span className="text-[#71717A] text-[9px]">{designScale.x}%</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    min="5"
+                                    max="600"
+                                    value={effectiveDims.x}
+                                    onChange={(e) =>
+                                      handleDimensionMmChange("x", parseFloat(e.target.value) || 1)
+                                    }
+                                    className="w-full bg-[#161616] border border-[#333333] text-white px-1.5 py-1 text-xs font-bold rounded-[1px] focus:border-[#FF5A00] outline-none"
+                                  />
+                                  <span className="text-[#71717A] text-[9px]">mm</span>
+                                </div>
+                                <span className="text-[8px] text-[#71717A] block mt-0.5">
+                                  Orig: {selectedFile.dimensions?.x || 80}mm
+                                </span>
+                              </div>
+
+                              {/* Y Axis */}
+                              <div className="bg-[#111111] border border-[#262626] p-2 rounded-[1px]">
+                                <div className="flex justify-between items-center text-[10px] mb-1">
+                                  <span className="text-[#38BDF8] font-bold">Y (DEPTH):</span>
+                                  <span className="text-[#71717A] text-[9px]">{designScale.y}%</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    min="5"
+                                    max="600"
+                                    value={effectiveDims.y}
+                                    onChange={(e) =>
+                                      handleDimensionMmChange("y", parseFloat(e.target.value) || 1)
+                                    }
+                                    className="w-full bg-[#161616] border border-[#333333] text-white px-1.5 py-1 text-xs font-bold rounded-[1px] focus:border-[#38BDF8] outline-none"
+                                  />
+                                  <span className="text-[#71717A] text-[9px]">mm</span>
+                                </div>
+                                <span className="text-[8px] text-[#71717A] block mt-0.5">
+                                  Orig: {selectedFile.dimensions?.y || 60}mm
+                                </span>
+                              </div>
+
+                              {/* Z Axis */}
+                              <div className="bg-[#111111] border border-[#262626] p-2 rounded-[1px]">
+                                <div className="flex justify-between items-center text-[10px] mb-1">
+                                  <span className="text-[#22C55E] font-bold">Z (HEIGHT):</span>
+                                  <span className="text-[#71717A] text-[9px]">{designScale.z}%</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="number"
+                                    step="0.5"
+                                    min="5"
+                                    max="600"
+                                    value={effectiveDims.z}
+                                    onChange={(e) =>
+                                      handleDimensionMmChange("z", parseFloat(e.target.value) || 1)
+                                    }
+                                    className="w-full bg-[#161616] border border-[#333333] text-white px-1.5 py-1 text-xs font-bold rounded-[1px] focus:border-[#22C55E] outline-none"
+                                  />
+                                  <span className="text-[#71717A] text-[9px]">mm</span>
+                                </div>
+                                <span className="text-[8px] text-[#71717A] block mt-0.5">
+                                  Orig: {selectedFile.dimensions?.z || 40}mm
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Live Calculated Telemetry */}
+                            <div className="bg-[#0A0A0A] border border-[#222222] p-2 rounded-[1px] flex flex-wrap items-center justify-between gap-2 text-[10px]">
+                              <div>
+                                <span className="text-[#71717A]">EFFECTIVE VOLUME: </span>
+                                <span className="text-[#FF5A00] font-bold">{effectiveVolume} cm³</span>
+                              </div>
+                              <div>
+                                <span className="text-[#71717A]">EST. MASS: </span>
+                                <span className="text-white font-bold">{quotation.massGrams} g</span>
+                              </div>
+                              <div>
+                                <span className="text-[#71717A]">RUN TIME: </span>
+                                <span className="text-[#22C55E] font-bold">{quotation.durationFormatted}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 2. Orientation & Bed Alignment Suite */}
+                          <div className="space-y-2 border-t border-[#262626] pt-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] text-white font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-[#38BDF8] rounded-full" />
+                                2. ROTATION &amp; BED ALIGNMENT
+                              </span>
+                              <span className="text-[9px] text-[#71717A]">
+                                ROT: [{rotation.x}°, {rotation.y}°, {rotation.z}°]
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                              {/* Pitch X */}
+                              <div className="bg-[#111111] border border-[#262626] p-1.5 rounded-[1px] flex items-center justify-between">
+                                <span className="text-[9px] text-[#A1A1AA]">X:</span>
+                                <div className="flex items-center gap-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateAxis("x", -90)}
+                                    className="px-1 py-0.5 bg-[#1C1C1C] hover:bg-[#282828] text-white text-[9px] border border-[#333333] rounded-[1px]"
+                                  >
+                                    -90°
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateAxis("x", 90)}
+                                    className="px-1 py-0.5 bg-[#1C1C1C] hover:bg-[#282828] text-white text-[9px] border border-[#333333] rounded-[1px]"
+                                  >
+                                    +90°
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Roll Y */}
+                              <div className="bg-[#111111] border border-[#262626] p-1.5 rounded-[1px] flex items-center justify-between">
+                                <span className="text-[9px] text-[#A1A1AA]">Y:</span>
+                                <div className="flex items-center gap-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateAxis("y", -90)}
+                                    className="px-1 py-0.5 bg-[#1C1C1C] hover:bg-[#282828] text-white text-[9px] border border-[#333333] rounded-[1px]"
+                                  >
+                                    -90°
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateAxis("y", 90)}
+                                    className="px-1 py-0.5 bg-[#1C1C1C] hover:bg-[#282828] text-white text-[9px] border border-[#333333] rounded-[1px]"
+                                  >
+                                    +90°
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Yaw Z */}
+                              <div className="bg-[#111111] border border-[#262626] p-1.5 rounded-[1px] flex items-center justify-between">
+                                <span className="text-[9px] text-[#A1A1AA]">Z:</span>
+                                <div className="flex items-center gap-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateAxis("z", -45)}
+                                    className="px-1 py-0.5 bg-[#1C1C1C] hover:bg-[#282828] text-white text-[9px] border border-[#333333] rounded-[1px]"
+                                  >
+                                    -45°
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRotateAxis("z", 45)}
+                                    className="px-1 py-0.5 bg-[#1C1C1C] hover:bg-[#282828] text-white text-[9px] border border-[#333333] rounded-[1px]"
+                                  >
+                                    +45°
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Auto-Orient & Mirror buttons */}
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              <button
+                                type="button"
+                                onClick={handleAutoOrientLayFlat}
+                                className="flex-1 bg-[#1A1A1A] hover:bg-[#242424] text-[#38BDF8] border border-[#38BDF8]/40 hover:border-[#38BDF8] py-1.5 px-2 text-[10px] font-bold uppercase rounded-[1px] transition-colors"
+                              >
+                                📐 AUTO-ORIENT / LAY FLAT
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playClick();
+                                  setIsMirroredX(!isMirroredX);
+                                }}
+                                className={`px-2.5 py-1 text-[9px] font-semibold border rounded-[1px] uppercase transition-colors ${
+                                  isMirroredX
+                                    ? "bg-[#FF5A00] text-black border-[#FF5A00]"
+                                    : "bg-[#1A1A1A] text-[#A1A1AA] border-[#333333] hover:text-white"
+                                }`}
+                              >
+                                🪞 FLIP X
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  sound.playClick();
+                                  setIsMirroredY(!isMirroredY);
+                                }}
+                                className={`px-2.5 py-1 text-[9px] font-semibold border rounded-[1px] uppercase transition-colors ${
+                                  isMirroredY
+                                    ? "bg-[#FF5A00] text-black border-[#FF5A00]"
+                                    : "bg-[#1A1A1A] text-[#A1A1AA] border-[#333333] hover:text-white"
+                                }`}
+                              >
+                                🪞 FLIP Y
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* 3. Structural Shell & Perimeter Loops */}
+                          <div className="space-y-2 border-t border-[#262626] pt-3">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[11px] text-white font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 bg-[#22C55E] rounded-full" />
+                                3. WALL PERIMETER LOOPS
+                              </span>
+                              <span className="text-[9px] text-[#A1A1AA]">
+                                {wallLoops} WALL SHELLS ({(wallLoops * 0.4).toFixed(1)}mm SOLID SHELL)
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-4 gap-1">
+                              {[
+                                { count: 2, label: "2 WALLS", note: "Light" },
+                                { count: 3, label: "3 WALLS", note: "Standard" },
+                                { count: 4, label: "4 WALLS", note: "Structural" },
+                                { count: 6, label: "6 WALLS", note: "Solid" },
+                              ].map((w) => (
+                                <button
+                                  key={w.count}
+                                  type="button"
+                                  onClick={() => {
+                                    sound.playClick();
+                                    setWallLoops(w.count);
+                                  }}
+                                  className={`p-1 text-center border rounded-[1px] transition-colors ${
+                                    wallLoops === w.count
+                                      ? "bg-[#22C55E]/15 text-[#22C55E] border-[#22C55E] font-bold"
+                                      : "bg-[#111111] text-[#A1A1AA] border-[#2A2A2A] hover:text-white"
+                                  }`}
+                                >
+                                  <span className="block text-[9px] font-bold">{w.label}</span>
+                                  <span className="block text-[8px] opacity-75">{w.note}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* 4. Custom Model Name / Revision Tag */}
+                          <div className="space-y-1 border-t border-[#262626] pt-3">
+                            <span className="text-[9px] text-[#A1A1AA] uppercase block">
+                              CUSTOM MODEL DESIGNATION / REVISION:
+                            </span>
+                            <input
+                              type="text"
+                              value={customModelName}
+                              placeholder={selectedFile.name}
+                              onChange={(e) => setCustomModelName(e.target.value)}
+                              className="w-full bg-[#111111] border border-[#333333] text-white px-2.5 py-1 text-xs rounded-[1px] focus:border-[#FF5A00] outline-none"
+                            />
+                          </div>
+
+                          {/* Reset to Original CAD Specs Button */}
+                          <div className="border-t border-[#262626] pt-2 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={handleResetCadSpecs}
+                              className="bg-[#1C1C1C] hover:bg-[#282828] text-[#A1A1AA] hover:text-white border border-[#333333] px-2.5 py-1 text-[9px] font-bold uppercase rounded-[1px] transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>↺</span>
+                              <span>[ RESTORE ORIGINAL CAD SPECS ]</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Discard & Re-upload Button */}

@@ -18,7 +18,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import HeroSection from "./components/sections/HeroSection";
 import UserPanel from "./components/UserPanel";
 import ExecutiveHero from "./components/sections/ExecutiveHero";
@@ -45,6 +45,7 @@ function MainApplicationShell() {
   const [fleet, setFleet] = useState(INITIAL_FLEET);
   const [inventory, setInventory] = useState(INITIAL_INVENTORY);
   const [loadedDesign, setLoadedDesign] = useState(null);
+  const loadSeqRef = useRef(1);
 
   // Operator Authorization Clearance State (Persisted in sessionStorage)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
@@ -123,19 +124,24 @@ function MainApplicationShell() {
   };
 
   const handleScrollTo = (elementId) => {
-    setCurrentView("USER");
+    if (currentRoute !== "home") {
+      navigateToHome();
+    }
     setTimeout(() => {
       document.getElementById(elementId)?.scrollIntoView({ behavior: "smooth" });
-    }, 50);
+    }, 60);
   };
 
   const handleLoadDesign = (design) => {
     sound.playClick();
-    setLoadedDesign(design);
-    setCurrentView("USER");
+    loadSeqRef.current += 1;
+    setLoadedDesign({ ...design, _loadSeq: loadSeqRef.current });
+    if (currentRoute !== "home") {
+      navigateToHome();
+    }
     setTimeout(() => {
       document.getElementById("user-panel")?.scrollIntoView({ behavior: "smooth" });
-    }, 50);
+    }, 60);
   };
 
   // Append new customer order into shared queue, allocate fleet rig, & deduct raw inventory
