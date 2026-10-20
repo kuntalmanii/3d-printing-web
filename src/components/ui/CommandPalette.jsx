@@ -15,8 +15,9 @@ export default function CommandPalette({
   orders = [],
   isAdminAuthenticated = false,
   onSelectOrder,
-  onSwitchView,
   onSelectDesign,
+  onScrollTo,
+  onTrack,
   popularDesigns = [],
 }) {
   const [query, setQuery] = useState("");
@@ -106,26 +107,26 @@ export default function CommandPalette({
           {/* Quick View Controls */}
           <div>
             <span className="text-[10px] text-[#71717A] uppercase tracking-wider block px-2 mb-1.5">
-              // WORKSPACE CONSOLES
+              // WORKSPACE ACTIONS &amp; SHORTCUTS
             </span>
             <div className="space-y-1">
               <button
                 type="button"
                 onClick={() => {
                   sound.playClick();
-                  onSwitchView("USER");
+                  onScrollTo?.("user-panel");
                   onClose();
                 }}
-                className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors"
+                className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
                   <span className="w-1.5 h-1.5 bg-[#FF5A00] rounded-full" />
                   <span className="text-white group-hover:text-[#FF5A00] font-semibold">
-                    SWITCH TO CLIENT PRODUCTION INTERFACE
+                    JUMP TO SLICER &amp; SPECIFICATION ESTIMATOR
                   </span>
                 </div>
                 <kbd className="text-[10px] text-[#71717A] bg-[#1a1a1a] px-1.5 py-0.5 border border-[#333333]">
-                  KEY: U
+                  #SLICER
                 </kbd>
               </button>
 
@@ -133,32 +134,83 @@ export default function CommandPalette({
                 type="button"
                 onClick={() => {
                   sound.playClick();
-                  onSwitchView("ADMIN");
+                  onScrollTo?.("popular-designs");
                   onClose();
                 }}
-                className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors"
+                className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-2">
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isAdminAuthenticated ? "bg-[#22C55E]" : "bg-[#EF4444]"
-                    }`}
-                  />
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white group-hover:text-[#FF5A00] font-semibold">
-                      SWITCH TO FLEET OPERATOR CONSOLE
-                    </span>
-                    {!isAdminAuthenticated && (
-                      <span className="text-[9px] text-[#EF4444] bg-[#EF4444]/10 border border-[#EF4444]/30 px-1.5 py-0.2 rounded-[1px] font-bold">
-                        🔒 LEVEL 4 AUTH REQ
-                      </span>
-                    )}
-                  </div>
+                  <span className="w-1.5 h-1.5 bg-[#FF5A00] rounded-full" />
+                  <span className="text-white group-hover:text-[#FF5A00] font-semibold">
+                    EXPLORE CURATED 3D PRINT VAULT
+                  </span>
                 </div>
                 <kbd className="text-[10px] text-[#71717A] bg-[#1a1a1a] px-1.5 py-0.5 border border-[#333333]">
-                  KEY: A
+                  #VAULT
                 </kbd>
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onScrollTo?.("materials-section");
+                  onClose();
+                }}
+                className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-[#FF5A00] rounded-full" />
+                  <span className="text-white group-hover:text-[#FF5A00] font-semibold">
+                    INSPECT POLYMERS &amp; RESIN MATRIX
+                  </span>
+                </div>
+                <kbd className="text-[10px] text-[#71717A] bg-[#1a1a1a] px-1.5 py-0.5 border border-[#333333]">
+                  #MATERIALS
+                </kbd>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  onTrack?.();
+                  onClose();
+                }}
+                className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-[#22C55E] rounded-full" />
+                  <span className="text-white group-hover:text-[#FF5A00] font-semibold">
+                    OPEN REAL-TIME ORDER TRACKER &amp; TELEMETRY
+                  </span>
+                </div>
+                <kbd className="text-[10px] text-[#71717A] bg-[#1a1a1a] px-1.5 py-0.5 border border-[#333333]">
+                  #/TRACK
+                </kbd>
+              </button>
+
+              {isAdminAuthenticated && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    window.location.hash = "#/admin";
+                    onClose();
+                  }}
+                  className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 bg-[#FF5A00] rounded-full" />
+                    <span className="text-[#FF5A00] font-semibold">
+                      RETURN TO ACTIVE FLEET OPERATOR CONSOLE
+                    </span>
+                  </div>
+                  <kbd className="text-[10px] text-[#FF5A00] bg-[#FF5A00]/10 px-1.5 py-0.5 border border-[#FF5A00]/30 font-bold">
+                    #/ADMIN
+                  </kbd>
+                </button>
+              )}
             </div>
           </div>
 

@@ -18,15 +18,14 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import UserPanel from "./components/UserPanel";
-import AdminPanel from "./components/AdminPanel";
 import ExecutiveHero from "./components/sections/ExecutiveHero";
 import PopularDesignsSection from "./components/sections/PopularDesignsSection";
 import MaterialsSection from "./components/sections/MaterialsSection";
 import TrackPage from "./pages/TrackPage";
+import AdminPage from "./pages/AdminPage";
 import CommandPalette from "./components/ui/CommandPalette";
-import AdminAuthModal from "./components/ui/AdminAuthModal";
 import { ToastProvider } from "./components/ui/Toast";
 import { INITIAL_ORDERS, INITIAL_FLEET, INITIAL_INVENTORY } from "./data/mockData";
 import { sound } from "./utils/soundEffects";
@@ -44,10 +43,9 @@ function MainApplicationShell() {
   const [orders, setOrders] = useState(INITIAL_ORDERS);
   const [fleet, setFleet] = useState(INITIAL_FLEET);
   const [inventory, setInventory] = useState(INITIAL_INVENTORY);
-  const [currentView, setCurrentView] = useState("USER"); // "USER" | "ADMIN"
   const [loadedDesign, setLoadedDesign] = useState(null);
 
-  // Operator Authorization Clearance State
+  // Operator Authorization Clearance State (Persisted in sessionStorage)
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(() => {
     try {
       return sessionStorage.getItem("nexus_operator_authenticated") === "true";
@@ -55,12 +53,6 @@ function MainApplicationShell() {
       return false;
     }
   });
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const isAdminAuthenticatedRef = useRef(isAdminAuthenticated);
-
-  useEffect(() => {
-    isAdminAuthenticatedRef.current = isAdminAuthenticated;
-  }, [isAdminAuthenticated]);
 
   // Command Palette & Sound State
   const [isCommandOpen, setIsCommandOpen] = useState(false);
@@ -79,19 +71,6 @@ function MainApplicationShell() {
     return () => clearInterval(timer);
   }, []);
 
-  // Protected View Switcher: Clients cannot enter Operator Console without Level 4 clearance
-  const handleSwitchView = (view) => {
-    if (view === "ADMIN") {
-      if (isAdminAuthenticatedRef.current) {
-        setCurrentView("ADMIN");
-      } else {
-        setIsAuthModalOpen(true);
-      }
-    } else {
-      setCurrentView("USER");
-    }
-  };
-
   const handleAuthSuccess = () => {
     setIsAdminAuthenticated(true);
     try {
@@ -99,8 +78,6 @@ function MainApplicationShell() {
     } catch {
       // In private browsing mode where sessionStorage might throw
     }
-    setIsAuthModalOpen(false);
-    setCurrentView("ADMIN");
   };
 
   const handleLockConsole = () => {
@@ -110,11 +87,11 @@ function MainApplicationShell() {
     } catch {
       // In private browsing mode where sessionStorage might throw
     }
-    setCurrentView("USER");
+    window.location.hash = "#/";
     sound.playClick();
   };
 
-  // Global Keyboard Shortcuts (U, A, Cmd+K)
+  // Global Keyboard Shortcuts (Cmd+K to search, U to scroll to top)
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
       // Don't trigger if user is typing in an input
@@ -128,10 +105,7 @@ function MainApplicationShell() {
 
       if (e.key.toLowerCase() === "u") {
         sound.playClick();
-        handleSwitchView("USER");
-      } else if (e.key.toLowerCase() === "a") {
-        sound.playClick();
-        handleSwitchView("ADMIN");
+        window.scrollTo({ top: 0, behavior: "smooth" });
       }
     };
 
@@ -295,24 +269,39 @@ function MainApplicationShell() {
     );
   };
 
-  // Route state initialized from window.location.hash for standalone tracking deep-linking
-  const [currentRoute, setCurrentRoute] = useState(() => {
-    const hash = window.location.hash;
-    return hash.startsWith("#/track") || hash.startsWith("#track") ? "track" : "home";
-  });
+  // Route state initialized from window.location.hash / pathname
+  const getRoute = () => {
+    const hash = window.location.hash || "";
+    const path = window.location.pathname || "";
+    if (hash.startsWith("#/track") || hash.startsWith("#track") || path.startsWith("/track")) {
+      return "track";
+    }
+    if (
+      hash.startsWith("#/admin") ||
+      hash.startsWith("#admin") ||
+      hash.startsWith("#/operator") ||
+      hash.startsWith("#operator") ||
+      path.startsWith("/admin") ||
+      path.startsWith("/operator")
+    ) {
+      return "admin";
+    }
+    return "home";
+  };
+
+  const [currentRoute, setCurrentRoute] = useState(getRoute);
 
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash.startsWith("#/track") || hash.startsWith("#track")) {
-        setCurrentRoute("track");
-      } else {
-        setCurrentRoute("home");
-      }
+    const handleLocationChange = () => {
+      setCurrentRoute(getRoute());
     };
 
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
+    window.addEventListener("hashchange", handleLocationChange);
+    window.addEventListener("popstate", handleLocationChange);
+    return () => {
+      window.removeEventListener("hashchange", handleLocationChange);
+      window.removeEventListener("popstate", handleLocationChange);
+    };
   }, []);
 
   const navigateToHome = () => {
@@ -321,9 +310,27 @@ function MainApplicationShell() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // If on track route, render the standalone Track Application Page
+  // Standalone Route 1: Order Tracking Page
   if (currentRoute === "track") {
     return <TrackPage onBack={navigateToHome} />;
+  }
+
+  // Standalone Route 2: Operator & Admin Console (Only Accessible via URL #/admin or /admin)
+  if (currentRoute === "admin") {
+    return (
+      <AdminPage
+        fleet={fleet}
+        orders={orders}
+        inventory={inventory}
+        onUpdateOrderStatus={handleUpdateOrderStatus}
+        onRestockInventory={handleRestockInventory}
+        onEmergencyStop={handleEmergencyStop}
+        isAuthenticated={isAdminAuthenticated}
+        onAuthenticate={handleAuthSuccess}
+        onLogout={handleLockConsole}
+        onBackToClient={navigateToHome}
+      />
+    );
   }
 
   const activeRigsCount = fleet.filter((r) => r.status === "ACTIVE").length;
@@ -331,7 +338,7 @@ function MainApplicationShell() {
   return (
     <div className="min-h-screen bg-[#111111] text-white selection:bg-[#FF5A00] selection:text-white flex flex-col font-sans">
       {/* ═════════════════════════════════════════════════════════════════════
-          TOP STICKY INDUSTRIAL COMMAND BAR
+          TOP STICKY INDUSTRIAL COMMAND BAR (PUBLIC CLIENT INTERFACE)
       ═════════════════════════════════════════════════════════════════════ */}
       <header className="sticky top-0 z-50 bg-[#161616]/95 backdrop-blur-md border-b border-[#333333] px-4 md:px-8 py-3 transition-colors">
         <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -357,36 +364,34 @@ function MainApplicationShell() {
             </div>
           </div>
 
-          {/* Center: In-Page Section Jump Shortcuts (Client View Only) */}
-          {currentView === "USER" && (
-            <div className="hidden xl:flex items-center gap-1 text-[11px] font-mono text-[#A1A1AA]">
-              <button
-                type="button"
-                onClick={() => handleScrollTo("user-panel")}
-                className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors"
-              >
-                // SLICER
-              </button>
-              <span className="text-[#333333]">•</span>
-              <button
-                type="button"
-                onClick={() => handleScrollTo("popular-designs")}
-                className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors"
-              >
-                // CURATED VAULT
-              </button>
-              <span className="text-[#333333]">•</span>
-              <button
-                type="button"
-                onClick={() => handleScrollTo("materials-section")}
-                className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors"
-              >
-                // MATERIALS MATRIX
-              </button>
-            </div>
-          )}
+          {/* Center: In-Page Section Jump Shortcuts */}
+          <div className="hidden xl:flex items-center gap-1 text-[11px] font-mono text-[#A1A1AA]">
+            <button
+              type="button"
+              onClick={() => handleScrollTo("user-panel")}
+              className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors cursor-pointer"
+            >
+              // SLICER
+            </button>
+            <span className="text-[#333333]">•</span>
+            <button
+              type="button"
+              onClick={() => handleScrollTo("popular-designs")}
+              className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors cursor-pointer"
+            >
+              // CURATED VAULT
+            </button>
+            <span className="text-[#333333]">•</span>
+            <button
+              type="button"
+              onClick={() => handleScrollTo("materials-section")}
+              className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors cursor-pointer"
+            >
+              // MATERIALS MATRIX
+            </button>
+          </div>
 
-          {/* Right Side: Quick Search, Sound, Clock & Global View Switcher */}
+          {/* Right Side: Quick Search, Sound, Clock & Order Tracking Button */}
           <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
             {/* Quick Command Trigger */}
             <button
@@ -425,86 +430,54 @@ function MainApplicationShell() {
               </span>
             )}
 
-            {/* Global View Switcher Segmented Control */}
-            <nav
-              aria-label="Global Console View Switcher"
-              className="flex items-center gap-1 bg-[#111111] border border-[#333333] p-1 rounded-[1px]"
+            {/* Public Client Order Tracker Link */}
+            <button
+              type="button"
+              id="btn-header-track"
+              onClick={() => {
+                sound.playClick();
+                window.location.hash = "#/track";
+              }}
+              className="font-mono text-xs md:text-[13px] px-3.5 py-1.5 rounded-[1px] border border-[#333333] bg-[#111111] hover:bg-[#222222] text-[#A1A1AA] hover:text-white transition-colors cursor-pointer uppercase tracking-wider font-semibold flex items-center gap-1.5"
+              title="Track Active Fabrication Order by ID"
             >
-              <button
-                type="button"
-                id="btn-view-client"
-                onClick={() => {
-                  sound.playClick();
-                  handleSwitchView("USER");
-                }}
-                className={`font-mono text-xs md:text-[13px] px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold ${
-                  currentView === "USER"
-                    ? "bg-[#FF5A00] text-black border-[#FF5A00] font-bold shadow-sm"
-                    : "border-transparent text-[#A1A1AA] hover:text-white hover:border-[#555555]"
-                }`}
-              >
-                [ CLIENT INTERFACE ]
-              </button>
+              <span>📦</span>
+              <span>[ TRACK ORDER ]</span>
+            </button>
 
+            {/* If Operator has an active session, show discreet return badge */}
+            {isAdminAuthenticated && (
               <button
                 type="button"
-                id="btn-view-operator"
                 onClick={() => {
                   sound.playClick();
-                  handleSwitchView("ADMIN");
+                  window.location.hash = "#/admin";
                 }}
-                className={`font-mono text-xs md:text-[13px] px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold flex items-center gap-1.5 ${
-                  currentView === "ADMIN"
-                    ? "bg-[#FF5A00] text-black border-[#FF5A00] font-bold shadow-sm"
-                    : "border-transparent text-[#A1A1AA] hover:text-white hover:border-[#555555]"
-                }`}
-                title={
-                  isAdminAuthenticated
-                    ? "Fleet Operator Console (Level 4 Active Session)"
-                    : "Fleet Operator Console (Restricted // Level 4 Authentication Required)"
-                }
+                className="font-mono text-xs px-2.5 py-1.5 rounded-[1px] border border-[#FF5A00]/40 bg-[#FF5A00]/10 text-[#FF5A00] hover:bg-[#FF5A00] hover:text-black transition-colors cursor-pointer font-bold uppercase flex items-center gap-1"
+                title="Return to Active Operator Console"
               >
-                {!isAdminAuthenticated && (
-                  <span className="text-[11px] opacity-75" aria-hidden="true">
-                    🔒
-                  </span>
-                )}
-                <span>[ OPERATOR CONSOLE ]</span>
+                <span>⚡ OPERATOR CONSOLE</span>
               </button>
-            </nav>
+            )}
           </div>
         </div>
       </header>
 
       {/* ═════════════════════════════════════════════════════════════════════
-          DYNAMIC MAIN WORKSPACE
+          CLIENT PRODUCTION WORKSPACE (HOME ROUTE)
       ═════════════════════════════════════════════════════════════════════ */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-        <div className={currentView === "USER" ? "block space-y-12" : "hidden"}>
-          {/* Executive Overview Header */}
-          <ExecutiveHero fleet={fleet} onScrollTo={handleScrollTo} />
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 space-y-12">
+        {/* Executive Overview Header */}
+        <ExecutiveHero fleet={fleet} onScrollTo={handleScrollTo} />
 
-          {/* Client Production Panel */}
-          <UserPanel orders={orders} onNewOrder={handleNewOrder} loadedDesign={loadedDesign} />
+        {/* Client Production Panel */}
+        <UserPanel orders={orders} onNewOrder={handleNewOrder} loadedDesign={loadedDesign} />
 
-          {/* Curated 3D Print Benchmark Vault */}
-          <PopularDesignsSection onLoadDesign={handleLoadDesign} onDirectDispatch={handleNewOrder} />
+        {/* Curated 3D Print Benchmark Vault */}
+        <PopularDesignsSection onLoadDesign={handleLoadDesign} onDirectDispatch={handleNewOrder} />
 
-          {/* Polymer & Resin Specification Matrix */}
-          <MaterialsSection />
-        </div>
-
-        <div className={currentView === "ADMIN" && isAdminAuthenticated ? "block" : "hidden"}>
-          <AdminPanel
-            fleet={fleet}
-            orders={orders}
-            inventory={inventory}
-            onUpdateOrderStatus={handleUpdateOrderStatus}
-            onRestockInventory={handleRestockInventory}
-            onEmergencyStop={handleEmergencyStop}
-            onLockConsole={handleLockConsole}
-          />
-        </div>
+        {/* Polymer & Resin Specification Matrix */}
+        <MaterialsSection />
       </main>
 
       {/* ═════════════════════════════════════════════════════════════════════
@@ -546,20 +519,14 @@ function MainApplicationShell() {
         orders={orders}
         isAdminAuthenticated={isAdminAuthenticated}
         onSelectOrder={(_orderId) => {
-          setCurrentView("USER");
-          setTimeout(() => {
-            document.getElementById("user-panel")?.scrollIntoView({ behavior: "smooth" });
-          }, 50);
+          handleScrollTo("user-panel");
         }}
-        onSwitchView={handleSwitchView}
         onSelectDesign={(design) => handleLoadDesign(design)}
-      />
-
-      {/* Operator Security Clearance Interlock */}
-      <AdminAuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSuccess={handleAuthSuccess}
+        onScrollTo={handleScrollTo}
+        onTrack={() => {
+          sound.playClick();
+          window.location.hash = "#/track";
+        }}
       />
     </div>
   );
