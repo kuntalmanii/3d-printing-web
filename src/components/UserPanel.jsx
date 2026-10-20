@@ -16,11 +16,14 @@
  * Props:
  *  - orders: Array of active order objects (falls back to INITIAL_ORDERS)
  *  - onNewOrder: Callback function taking new order payload: (order) => void
+ *  - loadedDesign: Optional pre-loaded design from popular vault
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useState, useMemo, useRef } from "react";
 import { INITIAL_ORDERS, formatINR } from "../data/mockData";
+import { sound } from "../utils/soundEffects";
+import { useToast } from "../context/ToastContext";
 
 // Extrusion Technologies
 const TECHNOLOGIES = [
@@ -61,42 +64,104 @@ const BASE_MATERIALS = [
     id: "resin-tough",
     name: "Tough 2000 Resin",
     technology: "SLA",
-    density: 1.2,
-    costPerGram: 12.8, // ₹12.80 / g
-    desc: "High-elongation photopolymer simulating injection-molded ABS.",
+    density: 1.15,
+    costPerGram: 14.0, // ₹14.00 / g
+    desc: "Surgical & engineering grade. High impact, elongation at break 15%.",
     color: "#A78BFA",
+  },
+  {
+    id: "resin-clear",
+    name: "High-Temp Optical Resin",
+    technology: "SLA",
+    density: 1.17,
+    costPerGram: 16.5, // ₹16.50 / g
+    desc: "Optical clarity & 238°C HDT @ 0.45 MPa. Fluidics & mold tooling.",
+    color: "#34D399",
   },
 ];
 
 // Layer Resolutions
 const LAYER_RESOLUTIONS = [
-  { id: "0.08", label: "0.08mm", title: "Ultra Detail", speedFactor: 1.35 },
-  { id: "0.16", label: "0.16mm", title: "Standard", speedFactor: 1.0 },
-  { id: "0.24", label: "0.24mm", title: "Rapid Draft", speedFactor: 0.8 },
+  { id: "0.08", label: "0.08 mm (Ultra-Fine)", speedFactor: 1.8, desc: "Micronic surface finish" },
+  { id: "0.16", label: "0.16 mm (Standard)", speedFactor: 1.0, desc: "Balanced strength & speed" },
+  { id: "0.24", label: "0.24 mm (Rapid Draft)", speedFactor: 0.65, desc: "Fast dimensional check" },
 ];
 
-// Default Preset Ingested Model
-const DEFAULT_PRESET_FILE = {
-  name: "quad_motor_bracket_v4.stl",
-  sizeMB: 3.48,
-  dimensions: { x: 82.0, y: 64.0, z: 38.0 },
-  volumeCm3: 48.5,
-  source: "CAD Assembly Benchmark",
-};
+// Infill Patterns
+const INFILL_PATTERNS = [
+  { id: "Gyroid", label: "Gyroid", desc: "Isotropic multi-axis shear strength (Recommended)" },
+  { id: "Honeycomb", label: "Honeycomb", desc: "High stiffness-to-weight ratio" },
+  { id: "Grid", label: "Grid", desc: "Maximum deposition velocity" },
+  { id: "Concentric", label: "Concentric", desc: "Optimal for flexible polymers" },
+];
 
-export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedDesign = null }) {
-  // Active Tab state: "slice" | "telemetry"
+// Sample CAD Models for 1-Click Quick Ingestion
+const SAMPLE_MODELS = [
+  {
+    name: "aerospace_drone_bracket_v2.stl",
+    title: "Aerospace Bracket",
+    sizeMB: 7.15,
+    dimensions: { x: 145, y: 92, z: 55 },
+    volumeCm3: 78.4,
+    technology: "FDM",
+    materialId: "pa-cf",
+    icon: "🚀",
+  },
+  {
+    name: "3D_Benchy_Calibration_v3.stl",
+    title: "3DBenchy Benchmark",
+    sizeMB: 2.85,
+    dimensions: { x: 60, y: 31, z: 48 },
+    volumeCm3: 15.5,
+    technology: "FDM",
+    materialId: "pla-speed",
+    icon: "🚢",
+  },
+  {
+    name: "cranial_osteomesh_implant_v2.stl",
+    title: "Cranial Osteo-Mesh",
+    sizeMB: 9.34,
+    dimensions: { x: 110, y: 95, z: 68 },
+    volumeCm3: 28.6,
+    technology: "SLA",
+    materialId: "resin-tough",
+    icon: "🩺",
+  },
+];
+
+export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null }) {
+  const { addToast } = useToast();
+
+  // Primary Tab Navigation: "slice" | "telemetry"
   const [activeTab, setActiveTab] = useState("slice");
 
-  // TAB 01: Slicing & File Ingestion State
-  const [selectedFile, setSelectedFile] = useState(DEFAULT_PRESET_FILE);
+  // File Ingestion State
+  const [selectedFile, setSelectedFile] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
+
+  // Viewport Interactive Controls
+  const [layerProgress, setLayerProgress] = useState(100); // 0 to 100%
+  const [viewPerspective, setViewPerspective] = useState("ISO-3D"); // "ISO-3D" | "TOP" | "FRONT"
+  const [showWireframe, setShowWireframe] = useState(true);
+
+  // Slicing Configurator State
   const [technology, setTechnology] = useState("FDM");
   const [materialId, setMaterialId] = useState("pa-cf");
   const [infill, setInfill] = useState(40);
+  const [infillPattern, setInfillPattern] = useState("Gyroid");
   const [layerHeight, setLayerHeight] = useState("0.16");
+  const [postProcessing, setPostProcessing] = useState({
+    acetoneVapor: false,
+    heatTreatAnneal: false,
+    ultrasonicClean: false,
+    supportRemoval: true,
+  });
+  const [priorityMode, setPriorityMode] = useState("STANDARD"); // "STANDARD" | "EXPRESS"
+  const [showCostBreakdown, setShowCostBreakdown] = useState(false);
+
+  // Success Confirmation State
   const [successNotification, setSuccessNotification] = useState(null);
-  const fileInputRef = useRef(null);
 
   // Sync loaded design from popular designs vault during render
   const [prevLoadedDesignId, setPrevLoadedDesignId] = useState(null);
@@ -133,6 +198,7 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
 
   // Handle technology switch with smart material adjustment
   const handleTechnologyChange = (techId) => {
+    sound.playClick();
     setTechnology(techId);
     if (techId === "SLA" && activeMaterial.technology !== "SLA") {
       setMaterialId("resin-tough");
@@ -158,11 +224,23 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
     const rawHours = (vol * infillFraction * 0.45) / 10 + height * 0.05;
     const estimatedHours = Number((rawHours * layerFactor).toFixed(2));
 
+    // Additional post-processing costs in INR
+    let postProcessingCost = 0;
+    if (postProcessing.acetoneVapor) postProcessingCost += 350;
+    if (postProcessing.heatTreatAnneal) postProcessingCost += 480;
+    if (postProcessing.ultrasonicClean) postProcessingCost += 280;
+    if (postProcessing.supportRemoval) postProcessingCost += 150;
+
+    // Priority expedite fee in INR
+    const priorityFee = priorityMode === "EXPRESS" ? 450 : 0;
+
     // Pricing components (in INR ₹)
     const materialCost = massGrams * costPerGram * 3.0; // 3.0x markup
     const machineCost = estimatedHours * 210; // ₹210/hr
     const setupFee = 420; // ₹420 calibration & setup
-    const totalPrice = Math.round(materialCost + machineCost + setupFee);
+    const totalPrice = Math.round(
+      materialCost + machineCost + setupFee + postProcessingCost + priorityFee
+    );
 
     // Formatted time duration
     const totalMinutes = Math.round(estimatedHours * 60);
@@ -177,17 +255,39 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
       materialCost: Math.round(materialCost),
       machineCost: Math.round(machineCost),
       setupFee,
+      postProcessingCost,
+      priorityFee,
       totalPrice,
     };
-  }, [selectedFile, activeMaterial, infill, layerHeight]);
+  }, [selectedFile, activeMaterial, infill, layerHeight, postProcessing, priorityMode]);
+
+  // Load sample model
+  const handleLoadSample = (sample) => {
+    sound.playClick();
+    setSelectedFile({
+      name: sample.name,
+      sizeMB: sample.sizeMB,
+      dimensions: sample.dimensions,
+      volumeCm3: sample.volumeCm3,
+      source: `Industrial Preset // ${sample.title}`,
+    });
+    setTechnology(sample.technology);
+    setMaterialId(sample.materialId);
+    setLayerProgress(100);
+    addToast({
+      title: "Sample Model Loaded",
+      message: `${sample.title} (${sample.dimensions.x}×${sample.dimensions.y}×${sample.dimensions.z}mm) configured into slicer.`,
+      type: "info",
+    });
+  };
 
   // File Upload Handlers (.STL, .STEP, .OBJ)
   const processUploadedFile = (file) => {
     if (!file) return;
+    sound.playChirp();
     const extension = file.name.split(".").pop().toLowerCase();
     const sizeInMB = Number((file.size / (1024 * 1024)).toFixed(2));
 
-    // Calculate realistic dimensional bounds proportional to file complexity/size
     const baseDimension = Math.max(30, Math.min(220, Math.round(Math.sqrt(file.size / 1024) * 2.8)));
     const x = Math.round(baseDimension * 1.1);
     const y = Math.round(baseDimension * 0.85);
@@ -201,7 +301,14 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
       volumeCm3: Math.max(8.0, volumeCm3),
       extension: `.${extension}`,
     });
+    setLayerProgress(100);
     setSuccessNotification(null);
+
+    addToast({
+      title: "CAD Geometry Ingested",
+      message: `${file.name} successfully parsed: ${x}×${y}×${z} mm bounds computed.`,
+      type: "success",
+    });
   };
 
   const handleDrop = (e) => {
@@ -219,12 +326,14 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
   };
 
   const handleDiscardFile = () => {
+    sound.playClick();
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   // Order Submission Handler
   const handleTransmitOrder = () => {
+    sound.playSuccess();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newOrderId = `NX-${randomSuffix}`;
 
@@ -237,7 +346,9 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
       technology,
       material: activeMaterial.name,
       infill,
+      infillPattern,
       layerHeight: Number(layerHeight),
+      priorityMode,
       status: "QUEUED",
       assignedPrinter: technology === "SLA" ? "RIG-02" : "RIG-01",
       progress: 0,
@@ -253,6 +364,13 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
     setSuccessNotification(newOrderPayload);
     setActiveTrackingId(newOrderId);
     setSearchQuery(newOrderId);
+
+    addToast({
+      title: "Order Transmitted to Fleet",
+      message: `Order #${newOrderId} scheduled on ${newOrderPayload.assignedPrinter} (${activeMaterial.name})`,
+      type: "success",
+      orderId: newOrderId,
+    });
   };
 
   // Active searched order for TAB 02
@@ -267,9 +385,47 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
+    sound.playClick();
     if (searchQuery.trim()) {
       setActiveTrackingId(searchQuery.trim().toUpperCase());
     }
+  };
+
+  // Export digital inspection spec as JSON
+  const handleDownloadSpec = (order) => {
+    sound.playClick();
+    const spec = {
+      standard: "ISO/ASTM 52900",
+      orderId: order.id,
+      client: order.client,
+      partFilename: order.filename,
+      technology: order.technology,
+      material: order.material,
+      dimensionsMm: order.dimensions,
+      volumeCm3: order.volumeCm3,
+      infillPercentage: order.infill,
+      layerHeightMm: order.layerHeight,
+      productionFacility: "NEXUS INDUSTRIAL RIG CLUSTER",
+      assignedMachine: order.assignedPrinter,
+      status: order.status,
+      timestamp: new Date().toISOString(),
+      digitalSignOff: "VERIFIED_QC_PASS_ISO52900",
+    };
+
+    const blob = new Blob([JSON.stringify(spec, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `NEXUS_SPEC_${order.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    addToast({
+      title: "QC Specification Exported",
+      message: `Digital inspection sheet for ${order.id} downloaded.`,
+      type: "info",
+      orderId: order.id,
+    });
   };
 
   return (
@@ -300,7 +456,10 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
           <button
             type="button"
             id="tab-slice-order"
-            onClick={() => setActiveTab("slice")}
+            onClick={() => {
+              sound.playClick();
+              setActiveTab("slice");
+            }}
             className={`font-mono text-xs md:text-[13px] px-4 py-2.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold ${
               activeTab === "slice"
                 ? "bg-[#111111] text-[#FF5A00] border-t-[#FF5A00] border-t-2 border-x-[#333333] border-b-[#111111]"
@@ -313,7 +472,10 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
           <button
             type="button"
             id="tab-telemetry-tracking"
-            onClick={() => setActiveTab("telemetry")}
+            onClick={() => {
+              sound.playClick();
+              setActiveTab("telemetry");
+            }}
             className={`font-mono text-xs md:text-[13px] px-4 py-2.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold ${
               activeTab === "telemetry"
                 ? "bg-[#111111] text-[#FF5A00] border-t-[#FF5A00] border-t-2 border-x-[#333333] border-b-[#111111]"
@@ -347,6 +509,7 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
               <button
                 type="button"
                 onClick={() => {
+                  sound.playClick();
                   setActiveTab("telemetry");
                   setActiveTrackingId(successNotification.id);
                   setSearchQuery(successNotification.id);
@@ -421,6 +584,31 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                   </span>
                 </div>
 
+                {/* 1-Click Sample Model Presets */}
+                <div className="mt-4 pt-4 border-t border-[#222222]">
+                  <span className="font-mono text-[10px] text-[#71717A] uppercase tracking-wider block mb-2">
+                    OR QUICK-LOAD VERIFIED TEST GEOMETRY:
+                  </span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SAMPLE_MODELS.map((sample) => (
+                      <button
+                        key={sample.name}
+                        type="button"
+                        onClick={() => handleLoadSample(sample)}
+                        className="bg-[#111111] hover:bg-[#1f1f1f] border border-[#2a2a2a] hover:border-[#FF5A00] p-2 text-left rounded-[1px] transition-all cursor-pointer group"
+                      >
+                        <span className="text-base block mb-1">{sample.icon}</span>
+                        <span className="font-mono text-[10px] text-white group-hover:text-[#FF5A00] font-semibold block truncate">
+                          {sample.title}
+                        </span>
+                        <span className="font-mono text-[9px] text-[#71717A] block">
+                          [{sample.technology}]
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Selected File Metadata & Viewport */}
                 {selectedFile ? (
                   <div className="mt-5 space-y-4">
@@ -444,8 +632,8 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                       </div>
                     </div>
 
-                    {/* Industrial Mock Viewport */}
-                    <div className="relative bg-[#0D0D0D] border border-[#333333] rounded-[1px] p-4 h-64 overflow-hidden flex flex-col justify-between">
+                    {/* Industrial Interactive Viewport */}
+                    <div className="relative bg-[#0D0D0D] border border-[#333333] rounded-[1px] p-4 h-72 overflow-hidden flex flex-col justify-between">
                       {/* Technical Grid Overlay */}
                       <div
                         className="absolute inset-0 pointer-events-none opacity-25"
@@ -458,23 +646,52 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                         }}
                       />
 
-                      {/* Viewport Top Status HUD */}
+                      {/* Viewport Top Status HUD & Perspective Controls */}
                       <div className="relative z-10 flex items-center justify-between font-mono text-[10px]">
                         <span className="text-[#FF5A00] font-bold flex items-center gap-1.5">
                           <span className="w-1.5 h-1.5 bg-[#FF5A00] rounded-full animate-ping" />
-                          [ WIREFRAME BOUNDS ACTIVE ]
+                          [ {showWireframe ? "WIREFRAME BOUNDS ACTIVE" : "SOLID SHADED BOUNDS"} ]
                         </span>
-                        <span className="text-[#A1A1AA] uppercase">
-                          ORTHO: ISO-3D
-                        </span>
+
+                        <div className="flex items-center gap-1 bg-[#141414] border border-[#333333] p-0.5 rounded-[1px]">
+                          {["ISO-3D", "TOP", "FRONT"].map((p) => (
+                            <button
+                              key={p}
+                              type="button"
+                              onClick={() => {
+                                sound.playClick();
+                                setViewPerspective(p);
+                              }}
+                              className={`px-1.5 py-0.5 text-[9px] rounded-[1px] uppercase transition-colors ${
+                                viewPerspective === p
+                                  ? "bg-[#FF5A00] text-black font-bold"
+                                  : "text-[#A1A1AA] hover:text-white"
+                              }`}
+                            >
+                              {p}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Isometric Pulsating Wireframe Box Visualizer */}
                       <div className="relative z-10 my-auto flex items-center justify-center">
-                        <div className="relative w-44 h-28 border border-[#FF5A00] border-dashed rounded-[1px] bg-[#FF5A00]/5 flex items-center justify-center animate-pulse shadow-sm">
+                        <div
+                          className={`relative w-44 h-28 border border-[#FF5A00] rounded-[1px] flex items-center justify-center shadow-sm transition-all duration-300 ${
+                            showWireframe ? "border-dashed bg-[#FF5A00]/5" : "border-solid bg-[#FF5A00]/15"
+                          }`}
+                        >
                           {/* Inner perspective crosshairs */}
                           <div className="absolute inset-x-0 top-1/2 border-t border-[#FF5A00]/30 border-dotted" />
                           <div className="absolute inset-y-0 left-1/2 border-l border-[#FF5A00]/30 border-dotted" />
+
+                          {/* Slicing Height Laser Simulation Bar */}
+                          <div
+                            className="absolute inset-x-0 border-t-2 border-[#FF5A00] shadow-[0_0_8px_#FF5A00] transition-all duration-150"
+                            style={{ bottom: `${layerProgress}%` }}
+                          >
+                            <span className="absolute -right-2 -top-1 w-2 h-2 bg-white rounded-full animate-ping" />
+                          </div>
 
                           {/* Pulsating Corner Anchor Points */}
                           <span className="absolute -top-1 -left-1 w-2 h-2 bg-[#FF5A00]" />
@@ -505,10 +722,37 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                         </div>
                       </div>
 
+                      {/* Interactive Layer Slicing Scrubber Slider */}
+                      <div className="relative z-10 bg-[#141414] border border-[#262626] p-2 rounded-[1px] space-y-1">
+                        <div className="flex items-center justify-between font-mono text-[9px]">
+                          <span className="text-[#A1A1AA]">
+                            LAYER SLICE SIMULATOR:{" "}
+                            <strong className="text-[#FF5A00]">
+                              {Math.round((layerProgress / 100) * 350)} / 350 LAYERS
+                            </strong>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setShowWireframe(!showWireframe)}
+                            className="text-[#71717A] hover:text-white uppercase"
+                          >
+                            [{showWireframe ? "SOLID" : "WIREFRAME"}]
+                          </button>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={layerProgress}
+                          onChange={(e) => setLayerProgress(Number(e.target.value))}
+                          className="w-full accent-[#FF5A00] cursor-pointer h-1 bg-[#222222] rounded-none"
+                        />
+                      </div>
+
                       {/* Viewport Bottom Telemetry Bar */}
-                      <div className="relative z-10 flex items-center justify-between font-mono text-[9px] text-[#71717A] border-t border-[#222222] pt-2">
+                      <div className="relative z-10 flex items-center justify-between font-mono text-[9px] text-[#71717A] border-t border-[#222222] pt-1">
                         <span>VOLUME: {selectedFile.volumeCm3} cm³</span>
-                        <span>GRID INTERVAL: 10.0 mm</span>
+                        <span>GRID: 10.0 mm</span>
                         <span>ORIGIN: [0, 0, 0]</span>
                       </div>
                     </div>
@@ -525,7 +769,7 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                   </div>
                 ) : (
                   <div className="mt-4 p-4 border border-[#222222] bg-[#111111] text-center font-mono text-[11px] text-[#71717A] rounded-[1px]">
-                    // NO CAD MODEL LOADED. SELECT OR DRAG A FILE TO COMMENCE GEOMETRY EXTRACTION.
+                    // NO CAD MODEL LOADED. SELECT A SAMPLE PRESET ABOVE OR DRAG A FILE TO COMMENCE GEOMETRY EXTRACTION.
                   </div>
                 )}
               </div>
@@ -538,166 +782,329 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                   <span className="text-[#FF5A00] uppercase font-bold tracking-wider">
                     // 02. SLICING CONFIGURATOR &amp; QUOTATION ENGINE
                   </span>
-                  <span className="text-[#71717A] text-[10px] uppercase">
-                    NEXUS ENGINE v2.4
+                  <span className="text-[#22C55E] uppercase font-bold flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-[#22C55E] rounded-full animate-ping" />
+                    LIVE ALGORITHM ACTIVE
                   </span>
                 </div>
 
-                {/* 1. Extrusion Technology Toggle */}
-                <div>
-                  <label className="font-mono text-[11px] uppercase tracking-wider text-white font-semibold block mb-2">
-                    01. EXTRUSION TECHNOLOGY:
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {TECHNOLOGIES.map((tech) => {
-                      const isActive = technology === tech.id;
-                      return (
-                        <button
-                          key={tech.id}
-                          type="button"
-                          onClick={() => handleTechnologyChange(tech.id)}
-                          className={`p-3 text-left border rounded-[1px] transition-colors cursor-pointer ${
-                            isActive
-                              ? "bg-[#1C1C1C] border-[#FF5A00] text-white"
-                              : "bg-[#111111] border-[#333333] text-[#A1A1AA] hover:border-[#555555] hover:text-white"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between font-mono text-xs font-bold">
-                            <span>{tech.label}</span>
-                            {isActive && <span className="w-2 h-2 bg-[#FF5A00] rounded-full" />}
-                          </div>
-                          <p className="font-sans text-[10px] text-[#71717A] mt-1">
-                            {tech.desc}
-                          </p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* 2. Base Material Selector */}
-                <div>
-                  <label className="font-mono text-[11px] uppercase tracking-wider text-white font-semibold block mb-2">
-                    02. PRODUCTION MATERIAL:
+                {/* Extrusion Technology Selector */}
+                <div className="space-y-2">
+                  <label className="font-mono text-xs text-[#A1A1AA] uppercase tracking-wider block">
+                    MANUFACTURING PROCESS / TECHNOLOGY:
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {BASE_MATERIALS.map((mat) => {
-                      const isSelected = materialId === mat.id;
-                      const isTechMatch = mat.technology === technology;
-                      return (
-                        <button
-                          key={mat.id}
-                          type="button"
-                          onClick={() => {
-                            setMaterialId(mat.id);
-                            if (mat.technology !== technology) {
-                              setTechnology(mat.technology);
-                            }
-                          }}
-                          className={`p-3 text-left border rounded-[1px] transition-colors cursor-pointer relative ${
-                            isSelected
-                              ? "bg-[#1C1C1C] border-[#FF5A00] text-white"
-                              : "bg-[#111111] border-[#2A2A2A] text-[#A1A1AA] hover:border-[#444444] hover:text-white"
-                          } ${!isTechMatch ? "opacity-75" : ""}`}
-                        >
-                          <div className="flex items-center justify-between font-mono text-xs font-bold">
-                            <span className="truncate">{mat.name}</span>
-                            <span className="text-[#FF5A00] text-[11px] flex-shrink-0">
-                              ₹{mat.costPerGram.toFixed(2)}/g
-                            </span>
-                          </div>
-                          <p className="font-sans text-[10px] text-[#71717A] mt-1 line-clamp-2">
-                            {mat.desc}
-                          </p>
-                          <div className="mt-2 flex items-center justify-between font-mono text-[9px] text-[#A1A1AA] border-t border-[#222222] pt-1.5">
-                            <span>DENSITY: {mat.density} g/cm³</span>
-                            <span className="text-[#FF5A00] uppercase font-semibold">
-                              [{mat.technology}]
-                            </span>
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {TECHNOLOGIES.map((tech) => (
+                      <button
+                        key={tech.id}
+                        type="button"
+                        onClick={() => handleTechnologyChange(tech.id)}
+                        className={`p-3.5 border rounded-[1px] text-left transition-colors cursor-pointer ${
+                          technology === tech.id
+                            ? "border-[#FF5A00] bg-[#FF5A00]/10"
+                            : "border-[#333333] bg-[#111111] hover:border-[#555555]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-mono text-xs font-bold">
+                          <span className={technology === tech.id ? "text-[#FF5A00]" : "text-white"}>
+                            {tech.label}
+                          </span>
+                          {technology === tech.id && (
+                            <span className="w-2 h-2 bg-[#FF5A00] rounded-full" />
+                          )}
+                        </div>
+                        <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-snug">
+                          {tech.desc}
+                        </p>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* 3. Infill Volume Slider (15% to 100%) */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="font-mono text-[11px] uppercase tracking-wider text-white font-semibold">
-                      03. INFILL VOLUME &amp; CORE DENSITY:
+                {/* Base Material Selector */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between font-mono text-xs">
+                    <label className="text-[#A1A1AA] uppercase tracking-wider">
+                      BASE POLYMER / RESIN STOCK:
                     </label>
-                    <span className="font-mono text-xs font-bold text-[#FF5A00] bg-[#FF5A00]/10 border border-[#FF5A00]/30 px-2 py-0.5 rounded-[1px]">
-                      {infill}% INFILL
+                    <span className="text-[#FF5A00] font-bold">
+                      {formatINR(activeMaterial.costPerGram)}/g
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min="15"
-                    max="100"
-                    step="5"
-                    value={infill}
-                    onChange={(e) => setInfill(Number(e.target.value))}
-                    className="w-full accent-[#FF5A00] bg-[#222222] h-2 rounded-[1px] cursor-pointer"
-                  />
-                  <div className="flex justify-between font-mono text-[9px] text-[#71717A] mt-1.5">
-                    <span>15% (LIGHTWEIGHT)</span>
-                    <span>40% (FUNCTIONAL STRUCTURAL)</span>
-                    <span>100% (SOLID CORE)</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {BASE_MATERIALS.filter((m) => m.technology === technology).map((mat) => (
+                      <button
+                        key={mat.id}
+                        type="button"
+                        onClick={() => {
+                          sound.playClick();
+                          setMaterialId(mat.id);
+                        }}
+                        className={`p-3 border rounded-[1px] text-left transition-colors cursor-pointer ${
+                          materialId === mat.id
+                            ? "border-[#FF5A00] bg-[#FF5A00]/10"
+                            : "border-[#333333] bg-[#111111] hover:border-[#555555]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between font-mono text-xs font-semibold">
+                          <span className="text-white flex items-center gap-2">
+                            <span
+                              className="w-2 h-2 rounded-full inline-block"
+                              style={{ backgroundColor: mat.color }}
+                            />
+                            {mat.name}
+                          </span>
+                          <span className="text-[#71717A] text-[10px]">
+                            {mat.density} g/cm³
+                          </span>
+                        </div>
+                        <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-tight line-clamp-1">
+                          {mat.desc}
+                        </p>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                {/* 4. Layer Resolution Selector */}
-                <div>
-                  <label className="font-mono text-[11px] uppercase tracking-wider text-white font-semibold block mb-2">
-                    04. VERTICAL LAYER RESOLUTION:
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {LAYER_RESOLUTIONS.map((res) => {
-                      const isSelected = layerHeight === res.id;
-                      return (
+                {/* Infill Density Slider & Pattern Selector */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-[#262626] pt-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center font-mono text-xs">
+                      <label className="text-[#A1A1AA] uppercase tracking-wider">
+                        INTERNAL INFILL DENSITY:
+                      </label>
+                      <span className="text-[#FF5A00] font-bold text-sm">{infill}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={infill}
+                      onChange={(e) => {
+                        sound.playChirp();
+                        setInfill(Number(e.target.value));
+                      }}
+                      className="w-full accent-[#FF5A00] cursor-pointer h-1.5 bg-[#222222] rounded-none"
+                    />
+                    <div className="flex justify-between font-mono text-[9px] text-[#71717A]">
+                      <span>10% (LIGHTWEIGHT)</span>
+                      <span>40% (STANDARD)</span>
+                      <span>100% (SOLID)</span>
+                    </div>
+                  </div>
+
+                  {/* Infill Pattern Selector */}
+                  <div className="space-y-2">
+                    <label className="font-mono text-xs text-[#A1A1AA] uppercase tracking-wider block">
+                      GEOMETRIC PATTERN:
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {INFILL_PATTERNS.map((pat) => (
                         <button
-                          key={res.id}
+                          key={pat.id}
                           type="button"
-                          onClick={() => setLayerHeight(res.id)}
-                          className={`p-2.5 text-center border rounded-[1px] transition-colors cursor-pointer ${
-                            isSelected
-                              ? "bg-[#1E1E1E] border-[#FF5A00] text-white"
-                              : "bg-[#111111] border-[#333333] text-[#A1A1AA] hover:text-white hover:border-[#555555]"
+                          onClick={() => {
+                            sound.playClick();
+                            setInfillPattern(pat.id);
+                          }}
+                          className={`px-2 py-1.5 font-mono text-[10px] border rounded-[1px] uppercase transition-colors text-left truncate ${
+                            infillPattern === pat.id
+                              ? "border-[#FF5A00] bg-[#FF5A00]/10 text-[#FF5A00] font-bold"
+                              : "border-[#333333] bg-[#111111] text-[#A1A1AA] hover:text-white"
                           }`}
+                          title={pat.desc}
                         >
-                          <div className="font-mono text-xs font-bold">{res.label}</div>
-                          <div className="font-sans text-[10px] text-[#71717A] mt-0.5">
-                            {res.title}
-                          </div>
+                          {pat.label}
                         </button>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* 5. High-Contrast Quotation Box (Background #EAEAEA, Text #111111, 1px Radius) */}
-                <div className="bg-[#EAEAEA] text-[#111111] p-5 rounded-[1px] border border-[#CCCCCC] space-y-4">
-                  <div className="flex items-center justify-between border-b border-[#CCCCCC] pb-2 font-mono text-[11px]">
+                {/* Layer Height Resolution */}
+                <div className="space-y-2 border-t border-[#262626] pt-4">
+                  <label className="font-mono text-xs text-[#A1A1AA] uppercase tracking-wider block">
+                    Z-AXIS SLICE RESOLUTION:
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {LAYER_RESOLUTIONS.map((res) => (
+                      <button
+                        key={res.id}
+                        type="button"
+                        onClick={() => {
+                          sound.playClick();
+                          setLayerHeight(res.id);
+                        }}
+                        className={`p-2.5 border rounded-[1px] text-center font-mono transition-colors cursor-pointer ${
+                          layerHeight === res.id
+                            ? "border-[#FF5A00] bg-[#FF5A00]/10 text-[#FF5A00] font-bold"
+                            : "border-[#333333] bg-[#111111] text-[#A1A1AA] hover:text-white"
+                        }`}
+                      >
+                        <span className="text-xs block">{res.label}</span>
+                        <span className="text-[9px] text-[#71717A] block mt-0.5">{res.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Production Priority Tier */}
+                <div className="space-y-2 border-t border-[#262626] pt-4">
+                  <label className="font-mono text-xs text-[#A1A1AA] uppercase tracking-wider block">
+                    MANUFACTURING PRIORITY &amp; DISPATCH SLA:
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setPriorityMode("STANDARD");
+                      }}
+                      className={`p-3 border rounded-[1px] text-left transition-colors cursor-pointer ${
+                        priorityMode === "STANDARD"
+                          ? "border-[#FF5A00] bg-[#FF5A00]/10"
+                          : "border-[#333333] bg-[#111111] hover:border-[#555555]"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center font-mono text-xs font-bold text-white">
+                        <span>STANDARD DISPATCH (48H)</span>
+                        <span className="text-[#22C55E]">INCLUDED</span>
+                      </div>
+                      <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-snug">
+                        Scheduled into optimal multi-part fleet batch cycles.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        setPriorityMode("EXPRESS");
+                      }}
+                      className={`p-3 border rounded-[1px] text-left transition-colors cursor-pointer ${
+                        priorityMode === "EXPRESS"
+                          ? "border-[#FF5A00] bg-[#FF5A00]/10"
+                          : "border-[#333333] bg-[#111111] hover:border-[#555555]"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center font-mono text-xs font-bold text-white">
+                        <span className="text-[#FF5A00]">⚡ EXPRESS OVERNIGHT (24H)</span>
+                        <span className="text-[#FF5A00] font-mono">+₹450</span>
+                      </div>
+                      <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-snug">
+                        Priority queue preemption &amp; immediate hotend preheat.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Post-Processing Options */}
+                <div className="space-y-2 border-t border-[#262626] pt-4">
+                  <label className="font-mono text-xs text-[#A1A1AA] uppercase tracking-wider block">
+                    POST-FABRICATION PROTOCOLS:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+                    <label className="flex items-center gap-2 p-2 border border-[#262626] bg-[#111111] rounded-[1px] cursor-pointer hover:border-[#444444]">
+                      <input
+                        type="checkbox"
+                        checked={postProcessing.supportRemoval}
+                        onChange={(e) =>
+                          setPostProcessing((prev) => ({ ...prev, supportRemoval: e.target.checked }))
+                        }
+                        className="accent-[#FF5A00]"
+                      />
+                      <span className="text-white text-[11px]">Precision Support Removal (+₹150)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 border border-[#262626] bg-[#111111] rounded-[1px] cursor-pointer hover:border-[#444444]">
+                      <input
+                        type="checkbox"
+                        checked={postProcessing.ultrasonicClean}
+                        onChange={(e) =>
+                          setPostProcessing((prev) => ({ ...prev, ultrasonicClean: e.target.checked }))
+                        }
+                        className="accent-[#FF5A00]"
+                      />
+                      <span className="text-white text-[11px]">IPA Ultrasonic Bath (+₹280)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 border border-[#262626] bg-[#111111] rounded-[1px] cursor-pointer hover:border-[#444444]">
+                      <input
+                        type="checkbox"
+                        checked={postProcessing.heatTreatAnneal}
+                        onChange={(e) =>
+                          setPostProcessing((prev) => ({ ...prev, heatTreatAnneal: e.target.checked }))
+                        }
+                        className="accent-[#FF5A00]"
+                      />
+                      <span className="text-white text-[11px]">Thermal Oven Anneal (+₹480)</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 p-2 border border-[#262626] bg-[#111111] rounded-[1px] cursor-pointer hover:border-[#444444]">
+                      <input
+                        type="checkbox"
+                        checked={postProcessing.acetoneVapor}
+                        onChange={(e) =>
+                          setPostProcessing((prev) => ({ ...prev, acetoneVapor: e.target.checked }))
+                        }
+                        className="accent-[#FF5A00]"
+                      />
+                      <span className="text-white text-[11px]">Vapor Polish Smoothing (+₹350)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* ── HIGH-CONTRAST COMMERCIAL QUOTATION ENGINE ───────── */}
+                <div className="bg-[#EAEAEA] text-[#111111] p-6 rounded-[1px] space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#CCCCCC] pb-2 font-mono text-xs">
                     <span className="font-bold uppercase tracking-wider text-[#111111]">
                       // DYNAMIC SOURCING QUOTATION
                     </span>
-                    <span className="text-[#666666] text-[10px] uppercase font-semibold">
-                      TAX INCLUDED
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowCostBreakdown(!showCostBreakdown)}
+                      className="text-[#FF5A00] font-bold hover:underline cursor-pointer"
+                    >
+                      {showCostBreakdown ? "[ HIDE FORMULA ]" : "[ VIEW PRICING FORMULA ℹ ]"}
+                    </button>
                   </div>
 
-                  {/* 3 Metric Columns: Mass, Machine Time, Total Price */}
-                  <div className="grid grid-cols-3 gap-3 text-left">
+                  {/* Pricing Formula Breakdown Drawer */}
+                  {showCostBreakdown && (
+                    <div className="bg-white p-3 border border-[#CCCCCC] rounded-[1px] font-mono text-[11px] space-y-1.5 animate-fade-in text-[#222222]">
+                      <div className="flex justify-between">
+                        <span>Mass Material Component:</span>
+                        <span>{quotation.massGrams}g × {formatINR(activeMaterial.costPerGram)}/g × 3.0 = <strong>{formatINR(quotation.materialCost)}</strong></span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Machine Run Time:</span>
+                        <span>{quotation.estimatedHours} hrs × ₹210/hr = <strong>{formatINR(quotation.machineCost)}</strong></span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Optical Calibration &amp; Bed Setup:</span>
+                        <span><strong>{formatINR(quotation.setupFee)}</strong></span>
+                      </div>
+                      {quotation.priorityFee > 0 && (
+                        <div className="flex justify-between text-[#FF5A00]">
+                          <span>Express 24h Priority Surcharge:</span>
+                          <span><strong>+{formatINR(quotation.priorityFee)}</strong></span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Primary Metrics 3-Pillar Cluster */}
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <span className="font-mono text-[10px] text-[#666666] uppercase block">
                         PART MASS:
                       </span>
-                      <span className="font-mono text-lg font-black text-[#111111] block">
+                      <span className="font-mono text-xl sm:text-2xl font-black text-[#111111] block">
                         {quotation.massGrams} <span className="text-xs font-normal">g</span>
                       </span>
-                      <span className="font-mono text-[9px] text-[#777777] block">
-                        @ {infill}% CORE
+                      <span className="font-mono text-[9px] text-[#777777]">
+                        @ {infill}% {infillPattern}
                       </span>
                     </div>
 
@@ -705,10 +1112,10 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                       <span className="font-mono text-[10px] text-[#666666] uppercase block">
                         MACHINE TIME:
                       </span>
-                      <span className="font-mono text-lg font-black text-[#111111] block">
+                      <span className="font-mono text-xl sm:text-2xl font-black text-[#111111] block">
                         {quotation.durationFormatted}
                       </span>
-                      <span className="font-mono text-[9px] text-[#777777] block">
+                      <span className="font-mono text-[9px] text-[#777777]">
                         ≈ {quotation.estimatedHours}h
                       </span>
                     </div>
@@ -717,31 +1124,31 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                       <span className="font-mono text-[10px] text-[#666666] uppercase block">
                         TOTAL ESTIMATE:
                       </span>
-                      <span className="font-mono text-xl font-black text-[#FF5A00] block">
+                      <span className="font-mono text-xl sm:text-2xl font-black text-[#FF5A00] block">
                         {formatINR(quotation.totalPrice)}
                       </span>
-                      <span className="font-mono text-[9px] text-[#777777] block">
-                        DISPATCH IN 48H
+                      <span className="font-mono text-[9px] text-[#22C55E] font-bold">
+                        {priorityMode === "EXPRESS" ? "DISPATCH IN 24H" : "DISPATCH IN 48H"}
                       </span>
                     </div>
                   </div>
 
-                  {/* Cost breakdown micro-line */}
-                  <div className="border-t border-[#D4D4D4] pt-2 flex flex-wrap justify-between font-mono text-[10px] text-[#555555]">
-                    <span>Material: ₹{quotation.materialCost}</span>
-                    <span>Machine: ₹{quotation.machineCost}</span>
-                    <span>Setup &amp; Prep: ₹{quotation.setupFee}</span>
+                  {/* Summary Bar */}
+                  <div className="border-t border-[#CCCCCC] pt-3 flex flex-wrap items-center justify-between font-mono text-[11px] text-[#555555]">
+                    <span>Material: {formatINR(quotation.materialCost)}</span>
+                    <span>Machine: {formatINR(quotation.machineCost)}</span>
+                    <span>Setup &amp; Prep: {formatINR(quotation.setupFee)}</span>
                   </div>
                 </div>
 
-                {/* 6. Submission Button */}
+                {/* Primary CTA Order Button */}
                 <button
                   type="button"
                   id="btn-transmit-order"
                   onClick={handleTransmitOrder}
-                  className="w-full bg-[#FF5A00] hover:bg-[#D94D00] text-white font-mono text-sm tracking-wider uppercase font-bold py-4 px-6 rounded-[1px] transition-colors cursor-pointer active:scale-[0.99] border border-[#FF5A00]"
+                  className="w-full bg-[#FF5A00] hover:bg-[#D94D00] text-black font-mono text-sm uppercase font-bold py-4 px-6 rounded-[1px] transition-all cursor-pointer shadow-md hover:shadow-lg active:scale-[0.99] flex items-center justify-center gap-2 tracking-wider"
                 >
-                  [ TRANSMIT TO PRODUCTION QUEUE — {formatINR(quotation.totalPrice)} ]
+                  <span>[ TRANSMIT TO PRODUCTION QUEUE — {formatINR(quotation.totalPrice)} ]</span>
                 </button>
               </div>
             </div>
@@ -768,7 +1175,7 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
               </div>
               <button
                 type="submit"
-                className="bg-[#FF5A00] hover:bg-[#D94D00] text-white font-mono text-xs uppercase font-bold px-6 py-3 rounded-[1px] transition-colors cursor-pointer tracking-wider flex items-center justify-center gap-2"
+                className="bg-[#FF5A00] hover:bg-[#D94D00] text-black font-mono text-xs uppercase font-bold px-6 py-3 rounded-[1px] transition-colors cursor-pointer tracking-wider flex items-center justify-center gap-2"
               >
                 <span>[ TRACE PART ]</span>
               </button>
@@ -784,6 +1191,7 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                   key={ord.id}
                   type="button"
                   onClick={() => {
+                    sound.playClick();
                     setSearchQuery(ord.id);
                     setActiveTrackingId(ord.id);
                   }}
@@ -819,8 +1227,17 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                   </h3>
                 </div>
 
-                {/* Pill Status Badge */}
-                <div>
+                {/* Pill Status Badge & Open External Tracking */}
+                <div className="flex items-center gap-3">
+                  <a
+                    href={`#/track?id=${searchedOrder.id}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-[11px] text-[#FF5A00] hover:text-white bg-[#FF5A00]/10 hover:bg-[#FF5A00]/20 border border-[#FF5A00]/30 px-3 py-1.5 rounded-[1px] transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <span>[ ↗ STANDALONE VIEW ]</span>
+                  </a>
+
                   <span
                     className={`inline-flex items-center gap-1.5 px-3 py-1 font-mono text-xs uppercase font-bold rounded-full ${
                       searchedOrder.status === "PRINTING"
@@ -864,6 +1281,31 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                     style={{ width: `${Math.max(4, searchedOrder.progress)}%` }}
                   />
                 </div>
+              </div>
+
+              {/* 4-Stage Industrial Timeline */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                {[
+                  { step: "01", name: "CAD VALIDATED", done: true },
+                  { step: "02", name: "SLICED & PREPPED", done: searchedOrder.progress >= 20 },
+                  { step: "03", name: "ACTIVE EXTRUSION", done: searchedOrder.progress >= 50 },
+                  { step: "04", name: "QC INSPECTED & READY", done: searchedOrder.progress >= 100 },
+                ].map((s) => (
+                  <div
+                    key={s.step}
+                    className={`p-2.5 border rounded-[1px] font-mono text-[10px] ${
+                      s.done
+                        ? "border-[#22C55E]/40 bg-[#22C55E]/5 text-white"
+                        : "border-[#262626] bg-[#111111] text-[#71717A]"
+                    }`}
+                  >
+                    <span className="block text-[9px] text-[#71717A]">PHASE {s.step}</span>
+                    <span className="font-bold block mt-0.5">{s.name}</span>
+                    <span className="text-[9px] mt-1 block">
+                      {s.done ? "✓ VERIFIED" : "PENDING"}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               {/* 4-Column Telemetry Grid */}
@@ -920,6 +1362,21 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
                   </span>
                 </div>
               </div>
+
+              {/* Action Buttons for Telemetry View */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#262626]">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadSpec(searchedOrder)}
+                  className="font-mono text-xs text-white bg-[#1A1A1A] hover:bg-[#252525] border border-[#333333] hover:border-[#FF5A00] px-4 py-2 rounded-[1px] transition-colors cursor-pointer flex items-center gap-2"
+                >
+                  <span>[ 📄 DOWNLOAD DIGITAL INSPECTION SPEC (.JSON) ]</span>
+                </button>
+
+                <div className="font-mono text-[10px] text-[#71717A]">
+                  AUDIT STANDARD: <span className="text-white">ISO/ASTM 52900</span>
+                </div>
+              </div>
             </div>
           ) : (
             /* Clean Fallback Message When Order Not Found */
@@ -938,6 +1395,7 @@ export default function UserPanel({ orders = INITIAL_ORDERS, onNewOrder, loadedD
               <button
                 type="button"
                 onClick={() => {
+                  sound.playClick();
                   const fallbackId = effectiveOrders[0]?.id || "NX-9042";
                   setSearchQuery(fallbackId);
                   setActiveTrackingId(fallbackId);

@@ -23,6 +23,11 @@
   to   { transform: translateY(100%); }
 }
 
+@keyframes toast-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+
 /* ─────────────────────────────────────────────
    CSS CUSTOM PROPERTIES — DESIGN TOKENS
 ───────────────────────────────────────────── */

@@ -10,15 +10,17 @@
  *  - Currency:    INR (₹ - Indian Rupee)
  *
  * Capabilities:
- *  - Category filtering (All, Calibration, Mechanisms, Aerospace, Biomedical & Kinetic)
+ *  - Category filtering with live counts
  *  - High-res macro 3D print photography
- *  - Detailed engineering specifications (Dimensions, Volume, Polygon count, Machine time, Material)
+ *  - Full Technical Inspection Modal with 360 inspection datasheet
+ *  - Quantity adjustment with bulk manufacturing discount
  *  - One-click [ LOAD INTO SLICER & QUOTE ] and [ INSTANT QUEUE DISPATCH ]
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useState, useMemo } from "react";
 import { formatINR } from "../../data/mockData";
+import { sound } from "../../utils/soundEffects";
 
 // Import local generated high-resolution assets
 import benchyImg from "../../assets/popular/benchy.jpg";
@@ -47,6 +49,12 @@ const POPULAR_DESIGNS = [
     description:
       "The undisputed gold standard additive calibration artifact. Tests dimensional accuracy, steep hull overhangs, chimney bridging, and multi-plane cooling.",
     tags: ["0.12mm DETAIL", "TOROID BRIDGING", "ZERO SUPPORT"],
+    specs: {
+      infill: "20% Gyroid",
+      layerHeight: "0.12 mm",
+      nozzleTemp: "215°C",
+      coolingFan: "100%",
+    },
   },
   {
     id: "POP-02",
@@ -66,6 +74,12 @@ const POPULAR_DESIGNS = [
     description:
       "Precision print-in-place epicyclic gear train with 4:1 torque amplification. Features self-lubricating involute gear teeth and hardened steel shaft collar seats.",
     tags: ["PRINT-IN-PLACE", "±0.15mm TOLERANCE", "HIGH TORQUE"],
+    specs: {
+      infill: "45% Honeycomb",
+      layerHeight: "0.16 mm",
+      nozzleTemp: "275°C",
+      coolingFan: "20%",
+    },
   },
   {
     id: "POP-03",
@@ -85,6 +99,12 @@ const POPULAR_DESIGNS = [
     description:
       "Topology-optimized aeronautical mount engineered with generative load paths. Reduces structural mass by 42% while retaining 115 MPa tensile yield.",
     tags: ["FEA OPTIMIZED", "PA-CF REINFORCED", "AS9100D READY"],
+    specs: {
+      infill: "50% Gyroid",
+      layerHeight: "0.16 mm",
+      nozzleTemp: "280°C",
+      coolingFan: "15%",
+    },
   },
   {
     id: "POP-04",
@@ -99,49 +119,67 @@ const POPULAR_DESIGNS = [
     recommendedMaterial: "PETG Industrial",
     recommendedMaterialId: "petg",
     printTime: "2h 50m",
-    price: 1850,
+    price: 1650,
     image: dragonImg,
     description:
-      "Interlocking print-in-place ball-and-socket spine with 34 free-moving segments. Dual-color extrusion with zero auxiliary support detachment necessary.",
-    tags: ["PRINT-IN-PLACE", "34 LINKAGES", "HIGH FLEXIBILITY"],
+      "Interlocking print-in-place ball-and-socket spine with 34 free-moving segments. Dual-color extrusion with zero auxiliary supports required.",
+    tags: ["PRINT-IN-PLACE", "34 SEGMENTS", "NO BRIM REQUIRED"],
+    specs: {
+      infill: "25% Grid",
+      layerHeight: "0.16 mm",
+      nozzleTemp: "240°C",
+      coolingFan: "50%",
+    },
   },
   {
     id: "POP-05",
     title: "Micro-Lattice Cranial Prosthetic",
     category: "BIOMEDICAL & KINETIC",
-    filename: "biocompatible_cranial_mesh_v1.stl",
-    sizeMB: 8.92,
+    filename: "cranial_osteomesh_implant_v2.stl",
+    sizeMB: 9.34,
     dimensions: { x: 110.0, y: 95.0, z: 68.0 },
     volumeCm3: 28.6,
-    facetCount: 712400,
+    facetCount: 792110,
     technology: "SLA",
     recommendedMaterial: "Tough 2000 Resin",
-    recommendedMaterialId: "resin-tough",
+    recommendedMaterialId: "tough-resin",
     printTime: "2h 10m",
-    price: 3200,
+    price: 4200,
     image: cranialImg,
     description:
-      "SLA photopolymer micro-lattice implant prototype with 300μm osteoconductive pore geometry. Liquid-tight sterile resin with ±0.05mm dimensional conformance.",
-    tags: ["MICRONIC SLA", "ISO 10993 COMPLIANT", "300μm LATTICE"],
+      "SLA photopolymer micro-lattice implant prototype with 300μm osteoconductive pore geometry. Liquid-tight sterile resin with ±0.05mm tolerance.",
+    tags: ["BIO-COMPATIBLE", "300μm PORES", "MICRONIC SLA"],
+    specs: {
+      infill: "100% Solid Lattice",
+      layerHeight: "0.05 mm",
+      nozzleTemp: "N/A (Photopolymer)",
+      coolingFan: "UV 405nm Active",
+    },
   },
   {
     id: "POP-06",
     title: "Triple-Axis Gimbal Kinetic Gyroscope",
     category: "MECHANICAL ASSEMBLIES",
-    filename: "triple_gimbal_gyroscope_v3.stl",
-    sizeMB: 6.30,
+    filename: "kinetic_gimbal_gyroscope_v5.stl",
+    sizeMB: 6.22,
     dimensions: { x: 125.0, y: 125.0, z: 110.0 },
     volumeCm3: 85.0,
-    facetCount: 490120,
+    facetCount: 462300,
     technology: "FDM",
     recommendedMaterial: "PETG Industrial",
     recommendedMaterialId: "petg",
     printTime: "3h 40m",
-    price: 2650,
+    price: 2100,
     image: gyroImg,
     description:
-      "Concentric triple-axis gimbal suspension exhibiting 360° rotational freedom. Balanced inertial core mounted via sealed precision micro-bearings.",
-    tags: ["3-AXIS GIMBAL", "LOW COEFFICIENT", "ROTATIONAL INERTIA"],
+      "Concentric triple-axis gimbal suspension exhibiting 360° rotational freedom. Balanced inertial core mounted via sealed precision stainless ball-bearings.",
+    tags: ["BALL BEARING SEAT", "3-AXIS GIMBAL", "LOW COEFFICIENT"],
+    specs: {
+      infill: "35% Gyroid",
+      layerHeight: "0.16 mm",
+      nozzleTemp: "245°C",
+      coolingFan: "40%",
+    },
   },
 ];
 
@@ -156,6 +194,19 @@ const CATEGORIES = [
 export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }) {
   const [selectedCategory, setSelectedCategory] = useState("ALL DESIGNS");
   const [dispatchedId, setDispatchedId] = useState(null);
+  const [inspectingDesign, setInspectingDesign] = useState(null);
+  const [quantities, setQuantities] = useState({});
+
+  const getQty = (id) => quantities[id] || 1;
+
+  const handleQtyChange = (id, delta) => {
+    sound.playChirp();
+    setQuantities((prev) => {
+      const current = prev[id] || 1;
+      const next = Math.max(1, Math.min(25, current + delta));
+      return { ...prev, [id]: next };
+    });
+  };
 
   // Filtered designs
   const filteredDesigns = useMemo(() => {
@@ -163,13 +214,20 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
     return POPULAR_DESIGNS.filter((d) => d.category === selectedCategory);
   }, [selectedCategory]);
 
-  const handleInstantDispatch = (design) => {
+  const handleInstantDispatch = (design, customQty = null) => {
+    sound.playSuccess();
+    const qty = customQty || getQty(design.id);
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+
+    // Bulk discount: 5% off for 5+, 10% off for 10+
+    const discount = qty >= 10 ? 0.9 : qty >= 5 ? 0.95 : 1;
+    const computedPrice = Math.round(design.price * qty * discount);
+
     const orderPayload = {
       id: `NX-${randomSuffix}`,
       client: "Benchmark Vault Direct",
-      filename: design.filename,
-      volumeCm3: design.volumeCm3,
+      filename: qty > 1 ? `${design.filename} (${qty}x Units)` : design.filename,
+      volumeCm3: Math.round(design.volumeCm3 * qty),
       dimensions: design.dimensions,
       technology: design.technology,
       material: design.recommendedMaterial,
@@ -179,7 +237,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
       assignedPrinter: design.technology === "SLA" ? "RIG-02" : "RIG-04",
       progress: 0,
       estimatedTime: design.printTime,
-      price: design.price,
+      price: computedPrice,
       createdAt: new Date().toISOString(),
     };
 
@@ -240,18 +298,33 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
         <div className="flex flex-wrap items-center gap-2">
           {CATEGORIES.map((cat) => {
             const isSelected = selectedCategory === cat;
+            const count =
+              cat === "ALL DESIGNS"
+                ? POPULAR_DESIGNS.length
+                : POPULAR_DESIGNS.filter((d) => d.category === cat).length;
+
             return (
               <button
                 key={cat}
                 type="button"
-                onClick={() => setSelectedCategory(cat)}
-                className={`font-mono text-[11px] md:text-xs px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold ${
+                onClick={() => {
+                  sound.playClick();
+                  setSelectedCategory(cat);
+                }}
+                className={`font-mono text-[11px] md:text-xs px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold flex items-center gap-2 ${
                   isSelected
                     ? "bg-[#FF5A00] text-black border-[#FF5A00] font-bold"
                     : "bg-[#161616] text-[#A1A1AA] border-[#333333] hover:text-white hover:border-[#555555]"
                 }`}
               >
-                {cat}
+                <span>{cat}</span>
+                <span
+                  className={`text-[9px] px-1.5 py-0.2 rounded-[1px] ${
+                    isSelected ? "bg-black/20 text-black font-bold" : "bg-[#222222] text-[#71717A]"
+                  }`}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -261,6 +334,9 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDesigns.map((design) => {
             const isDispatched = dispatchedId === design.id;
+            const qty = getQty(design.id);
+            const discount = qty >= 10 ? 0.9 : qty >= 5 ? 0.95 : 1;
+            const totalPrice = Math.round(design.price * qty * discount);
 
             return (
               <div
@@ -269,7 +345,14 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
               >
                 <div>
                   {/* High-Resolution Photography Container */}
-                  <div className="relative aspect-square w-full overflow-hidden bg-[#0A0A0A] border-b border-[#262626]">
+                  <div
+                    onClick={() => {
+                      sound.playClick();
+                      setInspectingDesign(design);
+                    }}
+                    className="relative aspect-square w-full overflow-hidden bg-[#0A0A0A] border-b border-[#262626] cursor-pointer"
+                    title="Click to view full technical inspection datasheet"
+                  >
                     <img
                       src={design.image}
                       alt={design.title}
@@ -287,6 +370,13 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                       </span>
                       <span className="bg-[#111111]/90 backdrop-blur-md text-[#A1A1AA] border border-[#333333] px-2 py-0.5 rounded-[1px]">
                         {design.id}
+                      </span>
+                    </div>
+
+                    {/* Inspect Badge Overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
+                      <span className="bg-[#111111]/95 border border-[#FF5A00] text-[#FF5A00] font-mono text-[11px] px-3 py-1.5 rounded-[1px] uppercase tracking-wider font-bold shadow-xl">
+                        [ 🔍 INSPECT TECHNICAL DATASHEET ]
                       </span>
                     </div>
 
@@ -308,7 +398,13 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                       <span className="font-mono text-[9px] text-[#FF5A00] uppercase tracking-wider block font-semibold mb-1">
                         // {design.category}
                       </span>
-                      <h3 className="font-sans font-bold text-lg text-white group-hover:text-[#FF5A00] transition-colors leading-snug">
+                      <h3
+                        onClick={() => {
+                          sound.playClick();
+                          setInspectingDesign(design);
+                        }}
+                        className="font-sans font-bold text-lg text-white group-hover:text-[#FF5A00] transition-colors leading-snug cursor-pointer"
+                      >
                         {design.title}
                       </h3>
                       <p className="font-sans text-xs text-[#A1A1AA] mt-1.5 leading-relaxed line-clamp-2">
@@ -344,6 +440,38 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                       </div>
                     </div>
 
+                    {/* Quantity Selector & Bulk Badge */}
+                    <div className="flex items-center justify-between border-t border-[#222222] pt-3 font-mono text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[#71717A] text-[10px] uppercase">BATCH QTY:</span>
+                        <div className="flex items-center border border-[#333333] rounded-[1px] bg-[#111111]">
+                          <button
+                            type="button"
+                            onClick={() => handleQtyChange(design.id, -1)}
+                            className="px-2 py-0.5 text-[#A1A1AA] hover:text-white hover:bg-[#222222] transition-colors"
+                          >
+                            −
+                          </button>
+                          <span className="px-2 font-bold text-white text-[11px] min-w-[20px] text-center">
+                            {qty}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleQtyChange(design.id, 1)}
+                            className="px-2 py-0.5 text-[#A1A1AA] hover:text-white hover:bg-[#222222] transition-colors"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
+                      {qty >= 5 && (
+                        <span className="text-[9px] text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/30 px-1.5 py-0.5 rounded-[1px] font-bold">
+                          {qty >= 10 ? "10% BULK DISCOUNT" : "5% BULK DISCOUNT"}
+                        </span>
+                      )}
+                    </div>
+
                     {/* Feature Micro-tags */}
                     <div className="flex flex-wrap gap-1.5">
                       {design.tags.map((tag) => (
@@ -363,7 +491,10 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                   {/* Load into Slicer */}
                   <button
                     type="button"
-                    onClick={() => onLoadDesign && onLoadDesign(design)}
+                    onClick={() => {
+                      sound.playClick();
+                      if (onLoadDesign) onLoadDesign(design);
+                    }}
                     className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] border border-[#333333] hover:border-[#FF5A00] py-2.5 px-3 font-mono text-[10px] md:text-[11px] font-bold uppercase rounded-[1px] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                     title="Load model into Instant Slicing Configurator"
                   >
@@ -384,7 +515,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                     {isDispatched ? (
                       <span>✓ QUEUED</span>
                     ) : (
-                      <span>[ DISPATCH — {formatINR(design.price)} ]</span>
+                      <span>[ DISPATCH — {formatINR(totalPrice)} ]</span>
                     )}
                   </button>
                 </div>
@@ -393,6 +524,163 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
           })}
         </div>
       </div>
+
+      {/* ═════════════════════════════════════════════════════════════════════
+          TECHNICAL INSPECTION MODAL
+      ═════════════════════════════════════════════════════════════════════ */}
+      {inspectingDesign && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+          onClick={() => setInspectingDesign(null)}
+        >
+          <div
+            className="bg-[#141414] border border-[#333333] shadow-2xl rounded-[1px] w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-[#181818] border-b border-[#262626] px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="w-2 h-2 bg-[#FF5A00] rounded-full animate-ping" />
+                <span className="font-mono text-xs text-[#FF5A00] font-bold uppercase tracking-wider">
+                  // TECHNICAL DATASHEET &amp; TOLERANCE PROFILE
+                </span>
+                <span className="font-mono text-[10px] text-[#A1A1AA] bg-[#222222] px-2 py-0.5 rounded-[1px]">
+                  {inspectingDesign.id}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingDesign(null)}
+                className="font-mono text-xs text-[#71717A] hover:text-white px-2 py-1 bg-[#222222] border border-[#333333] rounded-[1px]"
+              >
+                [ ESC ✕ ]
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-8">
+              {/* Left Column: Image with Grid Overlay */}
+              <div className="md:col-span-5 space-y-4">
+                <div className="relative aspect-square w-full rounded-[1px] overflow-hidden border border-[#333333] bg-[#0A0A0A]">
+                  <img
+                    src={inspectingDesign.image}
+                    alt={inspectingDesign.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 border border-[#FF5A00]/20 pointer-events-none" />
+                  <span className="absolute bottom-2 left-2 font-mono text-[9px] bg-black/80 px-2 py-0.5 border border-[#333333] text-white">
+                    VERIFIED AS-BUILT SPECIMEN
+                  </span>
+                </div>
+
+                <div className="bg-[#111111] p-3 border border-[#262626] font-mono text-[11px] space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-[#71717A]">CAD FILENAME:</span>
+                    <span className="text-white truncate max-w-[180px]">
+                      {inspectingDesign.filename}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#71717A]">FILE SIZE:</span>
+                    <span className="text-white">{inspectingDesign.sizeMB} MB</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#71717A]">SURFACE FACETS:</span>
+                    <span className="text-white">
+                      {inspectingDesign.facetCount.toLocaleString()} △
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Full Specifications */}
+              <div className="md:col-span-7 space-y-5">
+                <div>
+                  <span className="font-mono text-[10px] text-[#FF5A00] font-bold uppercase">
+                    // {inspectingDesign.category}
+                  </span>
+                  <h3 className="font-sans text-2xl font-black text-white mt-1 uppercase">
+                    {inspectingDesign.title}
+                  </h3>
+                  <p className="font-sans text-sm text-[#A1A1AA] mt-2 leading-relaxed">
+                    {inspectingDesign.description}
+                  </p>
+                </div>
+
+                {/* Slicing Recommendations */}
+                <div className="bg-[#111111] border border-[#262626] p-4 rounded-[1px] space-y-3">
+                  <h4 className="font-mono text-xs text-[#FF5A00] font-bold uppercase tracking-wider">
+                    // RECOMMENDED SLICER PROFILE
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3 font-mono text-xs">
+                    <div>
+                      <span className="text-[#71717A] text-[10px] block">MATERIAL:</span>
+                      <span className="text-white font-semibold">
+                        {inspectingDesign.recommendedMaterial}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#71717A] text-[10px] block">LAYER HEIGHT:</span>
+                      <span className="text-white font-semibold">
+                        {inspectingDesign.specs?.layerHeight || "0.16 mm"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#71717A] text-[10px] block">INFILL PATTERN:</span>
+                      <span className="text-white font-semibold">
+                        {inspectingDesign.specs?.infill || "35% Gyroid"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[#71717A] text-[10px] block">HOTEND / LASER:</span>
+                      <span className="text-white font-semibold">
+                        {inspectingDesign.specs?.nozzleTemp || "255°C"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Pricing & Direct Actions */}
+                <div className="border-t border-[#262626] pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <span className="font-mono text-[10px] text-[#71717A] uppercase block">
+                      SINGLE UNIT QUOTE:
+                    </span>
+                    <span className="font-mono text-2xl font-black text-[#FF5A00]">
+                      {formatINR(inspectingDesign.price)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        sound.playClick();
+                        if (onLoadDesign) onLoadDesign(inspectingDesign);
+                        setInspectingDesign(null);
+                      }}
+                      className="flex-1 sm:flex-none font-mono text-xs px-4 py-2.5 bg-[#1A1A1A] hover:bg-[#252525] text-white border border-[#333333] hover:border-[#FF5A00] rounded-[1px] font-bold uppercase transition-colors"
+                    >
+                      [ LOAD INTO SLICER ]
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleInstantDispatch(inspectingDesign);
+                        setInspectingDesign(null);
+                      }}
+                      className="flex-1 sm:flex-none font-mono text-xs px-5 py-2.5 bg-[#FF5A00] hover:bg-[#D94D00] text-black font-bold uppercase rounded-[1px] transition-colors"
+                    >
+                      [ DISPATCH ORDER ]
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
