@@ -660,9 +660,9 @@ app.get('/api/orders/:id', (req, res) => {
     order: {
       createdAt: order.createdAt,
       customer: {
-        fullName: order.customer.fullName,
-        company: order.customer.company,
-        country: order.customer.country,
+        fullName: order.customer?.fullName || 'Client Direct',
+        company: order.customer?.company || null,
+        country: order.customer?.country || 'United States',
       },
       configuration: order.configuration,
       file: order.file,
@@ -684,7 +684,7 @@ app.get('/api/orders', (req, res) => {
       trackingId: o.trackingId,
       status: getLiveOrderStatus(o).currentStatus,
       createdAt: o.createdAt,
-      customer: o.customer.fullName,
+      customer: o.customer?.fullName || 'Client Direct',
       material: o.configuration?.material,
       total: o.pricing?.total,
     })),

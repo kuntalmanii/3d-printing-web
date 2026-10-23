@@ -119,8 +119,13 @@ export default function ModelViewer3D({
   const [renderMode, setRenderMode] = useState("shaded"); // "shaded" | "wireframe" | "xray" | "slice"
   const [activePerspective, setActivePerspective] = useState("ISO-3D");
   const [isAutoRotating, setIsAutoRotating] = useState(false);
+  const isAutoRotatingRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [modelBounds, setModelBounds] = useState({ minZ: 0, maxZ: 40 });
+
+  useEffect(() => {
+    isAutoRotatingRef.current = isAutoRotating;
+  }, [isAutoRotating]);
 
   // Detect which model type to render based on modelType prop or fileName
   const detectedType = useCallback(() => {
@@ -575,15 +580,15 @@ export default function ModelViewer3D({
     const canvas = canvasRef.current;
     if (!container || !canvas) return;
 
-    const width = container.clientWidth || 300;
-    const height = container.clientHeight || 280;
+    const containerWidth = container.clientWidth || 300;
+    const containerHeight = container.clientHeight || 280;
 
     // 1. Scene
     const scene = new THREE.Scene();
     sceneRef.current = scene;
 
     // 2. Camera (Perspective CAD View)
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.5, 1000);
+    const camera = new THREE.PerspectiveCamera(42, containerWidth / containerHeight, 0.5, 1000);
     camera.position.set(55, 45, 55);
     cameraRef.current = camera;
 
@@ -594,7 +599,7 @@ export default function ModelViewer3D({
       alpha: true,
       powerPreference: "high-performance",
     });
-    renderer.setSize(width, height);
+    renderer.setSize(containerWidth, containerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.localClippingEnabled = true;
     renderer.shadowMap.enabled = true;
@@ -724,7 +729,7 @@ export default function ModelViewer3D({
       animFrameIdRef.current = requestAnimationFrame(animate);
 
       // Smooth auto-rotation if toggled
-      if (modelGroupRef.current && isAutoRotating) {
+      if (modelGroupRef.current && isAutoRotatingRef.current) {
         modelGroupRef.current.rotation.y += 0.008;
       }
 
@@ -745,7 +750,7 @@ export default function ModelViewer3D({
       controls.dispose();
       renderer.dispose();
     };
-  }, [isAutoRotating]);
+  }, []);
 
   // Update controls enabled state on interactive prop change
   useEffect(() => {

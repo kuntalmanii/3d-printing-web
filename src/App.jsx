@@ -23,6 +23,7 @@ import HeroSection from "./components/sections/HeroSection";
 import UserPanel from "./components/UserPanel";
 import ExecutiveHero from "./components/sections/ExecutiveHero";
 import PopularDesignsSection from "./components/sections/PopularDesignsSection";
+import { POPULAR_DESIGNS } from "./data/popularDesigns";
 import MaterialsSection from "./components/sections/MaterialsSection";
 import TrackPage from "./pages/TrackPage";
 import AdminPage from "./pages/AdminPage";
@@ -539,6 +540,7 @@ function MainApplicationShell() {
         onSelectOrder={(_orderId) => {
           handleScrollTo("user-panel");
         }}
+        popularDesigns={POPULAR_DESIGNS}
         onSelectDesign={(design) => handleLoadDesign(design)}
         onScrollTo={handleScrollTo}
         onTrack={() => {

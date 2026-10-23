@@ -17,6 +17,7 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
+import { formatINR } from "../../data/mockData";
 
 // ─────────────────────────────────────────────────────────────
 // STAGE DEFINITIONS & METADATA
@@ -302,7 +303,7 @@ export default function OrderTracker({ initialId = "NX-88492", isStandalonePage 
               year: "numeric",
             }).toUpperCase(),
             customer: data.order.customer?.company || data.order.customer?.fullName || "Verified Client",
-            pricingTotal: data.order.pricing?.total ? `$${data.order.pricing.total.toFixed(2)}` : null,
+            pricingTotal: data.order.pricing?.total ? formatINR(data.order.pricing.total) : null,
           });
           setFetchError(null);
         }

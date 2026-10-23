@@ -20,7 +20,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { INITIAL_ORDERS, formatINR } from "../data/mockData";
 import { sound } from "../utils/soundEffects";
 import { useToast } from "../context/ToastContext";
@@ -136,8 +136,14 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   // Primary Tab Navigation: "slice" | "telemetry"
   const [activeTab, setActiveTab] = useState("slice");
 
-  // File Ingestion State
-  const [selectedFile, setSelectedFile] = useState(null);
+  // File Ingestion State - initialized to verified Aerospace sample model so 3D viewport is ready on load
+  const [selectedFile, setSelectedFile] = useState({
+    name: SAMPLE_MODELS[0].name,
+    sizeMB: SAMPLE_MODELS[0].sizeMB,
+    dimensions: SAMPLE_MODELS[0].dimensions,
+    volumeCm3: SAMPLE_MODELS[0].volumeCm3,
+    source: `Industrial Preset // ${SAMPLE_MODELS[0].title}`,
+  });
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -173,53 +179,58 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   const [customModelName, setCustomModelName] = useState("");
   const [uploadedFileBuffer, setUploadedFileBuffer] = useState(null);
 
-  // Sync loaded design from popular designs vault during render
-  const [prevLoadedDesignKey, setPrevLoadedDesignKey] = useState(null);
-  const currentLoadKey = loadedDesign
-    ? `${loadedDesign.id || "design"}_${loadedDesign._loadSeq || 0}`
-    : null;
+  // Sync loaded design from popular designs vault via effect
+  const prevLoadedDesignSeqRef = useRef(null);
 
-  if (loadedDesign && currentLoadKey !== prevLoadedDesignKey) {
-    setPrevLoadedDesignKey(currentLoadKey);
-    setSelectedFile({
-      name: loadedDesign.filename || `${loadedDesign.title.toLowerCase().replace(/\s+/g, "_")}.stl`,
-      sizeMB: loadedDesign.sizeMB || 3.5,
-      dimensions: loadedDesign.dimensions || { x: 75, y: 55, z: 35 },
-      volumeCm3: loadedDesign.volumeCm3 || 42,
-      source: `Popular Vault // ${loadedDesign.title}`,
-    });
-    setUploadedFileBuffer(null);
-    setDesignScale({ x: 100, y: 100, z: 100 });
-    setRotation({ x: 0, y: 0, z: 0 });
-    setIsMirroredX(false);
-    setIsMirroredY(false);
-    setCustomModelName("");
-    setIsEditorOpen(true);
+  useEffect(() => {
+    if (!loadedDesign) return;
+    const currentLoadKey = `${loadedDesign.id || "design"}_${loadedDesign._loadSeq || 0}`;
+    if (currentLoadKey === prevLoadedDesignSeqRef.current) return;
+    prevLoadedDesignSeqRef.current = currentLoadKey;
 
-    if (loadedDesign.technology) {
-      setTechnology(loadedDesign.technology);
-    }
-    const matId =
-      loadedDesign.recommendedMaterialId === "tough-resin"
-        ? "resin-tough"
-        : loadedDesign.recommendedMaterialId ||
-          (loadedDesign.technology === "SLA" ? "resin-tough" : "pa-cf");
-    setMaterialId(matId);
+    const timer = setTimeout(() => {
+      setSelectedFile({
+        name: loadedDesign.filename || `${loadedDesign.title.toLowerCase().replace(/\s+/g, "_")}.stl`,
+        sizeMB: loadedDesign.sizeMB || 3.5,
+        dimensions: loadedDesign.dimensions || { x: 75, y: 55, z: 35 },
+        volumeCm3: loadedDesign.volumeCm3 || 42,
+        source: `Popular Vault // ${loadedDesign.title}`,
+      });
+      setUploadedFileBuffer(null);
+      setDesignScale({ x: 100, y: 100, z: 100 });
+      setRotation({ x: 0, y: 0, z: 0 });
+      setIsMirroredX(false);
+      setIsMirroredY(false);
+      setCustomModelName("");
+      setIsEditorOpen(true);
 
-    if (loadedDesign.specs?.infill) {
-      const parsedInfill = parseInt(loadedDesign.specs.infill, 10);
-      if (!isNaN(parsedInfill)) setInfill(parsedInfill);
-      if (loadedDesign.specs.infill.includes("Gyroid")) setInfillPattern("Gyroid");
-      else if (loadedDesign.specs.infill.includes("Honeycomb")) setInfillPattern("Honeycomb");
-      else if (loadedDesign.specs.infill.includes("Grid")) setInfillPattern("Grid");
-    }
-    if (loadedDesign.specs?.layerHeight) {
-      const lh = loadedDesign.specs.layerHeight.replace(" mm", "");
-      if (["0.08", "0.16", "0.24"].includes(lh)) setLayerHeight(lh);
-    }
+      if (loadedDesign.technology) {
+        setTechnology(loadedDesign.technology);
+      }
+      const matId =
+        loadedDesign.recommendedMaterialId === "tough-resin"
+          ? "resin-tough"
+          : loadedDesign.recommendedMaterialId ||
+            (loadedDesign.technology === "SLA" ? "resin-tough" : "pa-cf");
+      setMaterialId(matId);
 
-    setActiveTab("slice");
-  }
+      if (loadedDesign.specs?.infill) {
+        const parsedInfill = parseInt(loadedDesign.specs.infill, 10);
+        if (!isNaN(parsedInfill)) setInfill(parsedInfill);
+        if (loadedDesign.specs.infill.includes("Gyroid")) setInfillPattern("Gyroid");
+        else if (loadedDesign.specs.infill.includes("Honeycomb")) setInfillPattern("Honeycomb");
+        else if (loadedDesign.specs.infill.includes("Grid")) setInfillPattern("Grid");
+      }
+      if (loadedDesign.specs?.layerHeight) {
+        const lh = loadedDesign.specs.layerHeight.replace(" mm", "");
+        if (["0.08", "0.16", "0.24"].includes(lh)) setLayerHeight(lh);
+      }
+
+      setActiveTab("slice");
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [loadedDesign]);
 
   // TAB 02: Telemetry & Tracking State
   const effectiveOrders = useMemo(() => {
@@ -484,6 +495,16 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
 
   // Order Submission Handler
   const handleTransmitOrder = () => {
+    if (!selectedFile) {
+      sound.playAlert();
+      addToast({
+        title: "No Model Selected",
+        message: "Please select or upload a 3D CAD model before transmitting to production.",
+        type: "warning",
+      });
+      return;
+    }
+
     sound.playSuccess();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newOrderId = `NX-${randomSuffix}`;

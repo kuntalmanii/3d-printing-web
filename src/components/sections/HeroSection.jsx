@@ -53,7 +53,7 @@ function WireframeGrid() {
 
   useFrame(({ clock }) => {
     if (groupRef.current)
-      groupRef.current.rotation.y = clock.elapsedTime * SPIN_SPEED;
+      groupRef.current.rotation.y = clock.getElapsedTime() * SPIN_SPEED;
   });
 
   return (
@@ -104,7 +104,7 @@ function ParticleNodes({ count = 180 }) {
   useFrame(({ clock }) => {
     if (!ref.current) return;
     // Co-rotate with the grid for visual coherence
-    ref.current.rotation.y = clock.elapsedTime * SPIN_SPEED;
+    ref.current.rotation.y = clock.getElapsedTime() * SPIN_SPEED;
     ref.current.rotation.x = TILT;
   });
 
@@ -186,13 +186,13 @@ function Toolpath() {
       headRef.current.position.set(pt.x, pt.y + 0.07, pt.z);
       // Pulse scale
       headRef.current.scale.setScalar(
-        0.8 + Math.sin(clock.elapsedTime * 14) * 0.28
+        0.8 + Math.sin(clock.getElapsedTime() * 14) * 0.28
       );
     }
 
     // Shared rotation with grid
     if (groupRef.current)
-      groupRef.current.rotation.y = clock.elapsedTime * SPIN_SPEED;
+      groupRef.current.rotation.y = clock.getElapsedTime() * SPIN_SPEED;
   });
 
   return (

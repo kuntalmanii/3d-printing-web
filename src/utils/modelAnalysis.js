@@ -110,9 +110,13 @@ export function computeBoundingBox(geometry) {
  * Summing over all facets yields the enclosed volume of closed manifold surfaces.
  */
 export function computeMeshVolume(geometry) {
-  const geo = geometry.index ? geometry.toNonIndexed() : geometry;
+  const isIndexed = !!geometry.index;
+  const geo = isIndexed ? geometry.toNonIndexed() : geometry;
   const pos = geo.attributes.position;
-  if (!pos || pos.count === 0) return 0;
+  if (!pos || pos.count === 0) {
+    if (isIndexed) geo.dispose();
+    return 0;
+  }
 
   let totalVolume = 0;
 
@@ -130,6 +134,8 @@ export function computeMeshVolume(geometry) {
     totalVolume += v;
   }
 
+  if (isIndexed) geo.dispose();
+
   // Convert mm³ to cm³: 1 cm³ = 1000 mm³
   const volumeCm3 = Math.abs(totalVolume) / 1000.0;
   return Number(volumeCm3.toFixed(3));
@@ -139,9 +145,13 @@ export function computeMeshVolume(geometry) {
  * Computes total surface area in cm² and mm².
  */
 export function computeSurfaceArea(geometry) {
-  const geo = geometry.index ? geometry.toNonIndexed() : geometry;
+  const isIndexed = !!geometry.index;
+  const geo = isIndexed ? geometry.toNonIndexed() : geometry;
   const pos = geo.attributes.position;
-  if (!pos || pos.count === 0) return { areaMm2: 0, areaCm2: 0 };
+  if (!pos || pos.count === 0) {
+    if (isIndexed) geo.dispose();
+    return { areaMm2: 0, areaCm2: 0 };
+  }
 
   let totalArea = 0;
   const vA = new THREE.Vector3();
@@ -162,6 +172,8 @@ export function computeSurfaceArea(geometry) {
     totalArea += cb.length() * 0.5;
   }
 
+  if (isIndexed) geo.dispose();
+
   return {
     areaMm2: Number(totalArea.toFixed(1)),
     areaCm2: Number((totalArea / 100.0).toFixed(2)),
@@ -173,9 +185,11 @@ export function computeSurfaceArea(geometry) {
  * Every edge in a watertight mesh must be shared by exactly 2 triangles.
  */
 export function checkWatertight(geometry) {
-  const geo = geometry.index ? geometry.toNonIndexed() : geometry;
+  const isIndexed = !!geometry.index;
+  const geo = isIndexed ? geometry.toNonIndexed() : geometry;
   const pos = geo.attributes.position;
   if (!pos || pos.count === 0) {
+    if (isIndexed) geo.dispose();
     return {
       isWatertight: false,
       status: "EMPTY",
@@ -206,6 +220,8 @@ export function checkWatertight(geometry) {
       edgeCounts.set(edge, (edgeCounts.get(edge) || 0) + 1);
     }
   }
+
+  if (isIndexed) geo.dispose();
 
   let openEdges = 0;
   let nonManifoldEdges = 0;
