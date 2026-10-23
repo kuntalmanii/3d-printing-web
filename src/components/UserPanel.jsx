@@ -223,8 +223,12 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
         else if (loadedDesign.specs.infill.includes("Grid")) setInfillPattern("Grid");
       }
       if (loadedDesign.specs?.layerHeight) {
-        const lh = loadedDesign.specs.layerHeight.replace(" mm", "");
-        if (["0.08", "0.16", "0.24"].includes(lh)) setLayerHeight(lh);
+        const val = parseFloat(loadedDesign.specs.layerHeight);
+        if (!isNaN(val)) {
+          if (val <= 0.10) setLayerHeight("0.08");
+          else if (val <= 0.20) setLayerHeight("0.16");
+          else setLayerHeight("0.24");
+        }
       }
 
       setActiveTab("slice");

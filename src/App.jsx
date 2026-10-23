@@ -634,22 +634,24 @@ function MainApplicationShell() {
       />
 
       {/* Global Command Palette Modal */}
-      <CommandPalette
-        isOpen={isCommandOpen}
-        onClose={() => setIsCommandOpen(false)}
-        orders={orders}
-        isAdminAuthenticated={isAdminAuthenticated}
-        onSelectOrder={(_orderId) => {
-          handleScrollTo("user-panel");
-        }}
-        popularDesigns={POPULAR_DESIGNS}
-        onSelectDesign={(design) => handleLoadDesign(design)}
-        onScrollTo={handleScrollTo}
-        onTrack={() => {
-          sound.playClick();
-          window.location.hash = "#/track";
-        }}
-      />
+      {isCommandOpen && (
+        <CommandPalette
+          isOpen={isCommandOpen}
+          onClose={() => setIsCommandOpen(false)}
+          orders={orders}
+          isAdminAuthenticated={isAdminAuthenticated}
+          onSelectOrder={(_orderId) => {
+            handleScrollTo("user-panel");
+          }}
+          popularDesigns={POPULAR_DESIGNS}
+          onSelectDesign={(design) => handleLoadDesign(design)}
+          onScrollTo={handleScrollTo}
+          onTrack={() => {
+            sound.playClick();
+            window.location.hash = "#/track";
+          }}
+        />
+      )}
     </div>
   );
 }

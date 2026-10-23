@@ -57,39 +57,26 @@ export default function CommandPalette({
     } catch {}
   };
 
-  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
-  if (!isOpen && prevIsOpen) {
-    setPrevIsOpen(false);
-    setQuery("");
-  } else if (isOpen && !prevIsOpen) {
-    setPrevIsOpen(true);
-  }
-
   useEffect(() => {
-    if (isOpen) {
-      sound.playClick();
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [isOpen]);
+    sound.playClick();
+    const timer = setTimeout(() => inputRef.current?.focus(), 50);
+    return () => clearTimeout(timer);
+  }, []);
 
-  // Handle escape key
+  // Handle escape and shortcut keys
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        if (isOpen) {
-          onClose();
-        } else {
-          // Trigger open via parent
-        }
+        onClose();
       }
-      if (e.key === "Escape" && isOpen) {
+      if (e.key === "Escape") {
         onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
   if (!isOpen) return null;
 

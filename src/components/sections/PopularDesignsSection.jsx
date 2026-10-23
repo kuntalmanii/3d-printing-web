@@ -226,7 +226,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
       recommendedMaterialId: newDesignForm.recommendedMaterialId,
       printTime: newDesignForm.printTime || "2h 15m",
       price: Math.max(150, Number(newDesignForm.price) || 1200),
-      image: imageMap[newDesignForm.presetImage] || planetaryImg,
+      image: imageMap[newDesignForm.presetImage] || POPULAR_DESIGNS[1]?.image || POPULAR_DESIGNS[0]?.image,
       description:
         newDesignForm.description.trim() ||
         "Custom registered CAD geometry with verified dimensional envelope ready for production.",

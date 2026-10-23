@@ -262,11 +262,15 @@ export default function OrderTracker({ initialId = "NX-88492", isStandalonePage 
       setOrderDetails(presetMatch);
     }
 
-    // 2. Query live Express backend API (if available on PORT 5000)
+    // 2. Query live Express backend API (with 2000ms timeout fallback)
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const response = await fetch(`http://127.0.0.1:5000/api/orders/${encodeURIComponent(rawId)}`, {
         headers: { Accept: "application/json" },
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();

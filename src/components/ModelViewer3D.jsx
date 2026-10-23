@@ -82,13 +82,17 @@ const MATERIAL_PRESETS = {
   },
 };
 
+const DEFAULT_DIMENSIONS = Object.freeze({ x: 80, y: 60, z: 40 });
+const DEFAULT_SCALE = Object.freeze({ x: 100, y: 100, z: 100 });
+const DEFAULT_ROTATION = Object.freeze({ x: 0, y: 0, z: 0 });
+
 export default function ModelViewer3D({
   modelType = "custom",
   fileName = "",
   fileBuffer = null,
-  dimensions = { x: 80, y: 60, z: 40 },
-  scale = { x: 100, y: 100, z: 100 },
-  rotation = { x: 0, y: 0, z: 0 },
+  dimensions = DEFAULT_DIMENSIONS,
+  scale = DEFAULT_SCALE,
+  rotation = DEFAULT_ROTATION,
   isMirroredX = false,
   isMirroredY = false,
   materialId = "pa-cf",
@@ -121,7 +125,7 @@ export default function ModelViewer3D({
   const [isAutoRotating, setIsAutoRotating] = useState(false);
   const isAutoRotatingRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [modelBounds, setModelBounds] = useState({ minZ: 0, maxZ: 40 });
+  const modelBoundsRef = useRef({ minZ: 0, maxZ: 40 });
 
   useEffect(() => {
     isAutoRotatingRef.current = isAutoRotating;
@@ -1174,15 +1178,22 @@ export default function ModelViewer3D({
     const newModelGroup = buildModelMesh(type, activeMat);
     modelGroupRef.current = newModelGroup;
 
-    // Apply scale & rotation from CAD Editor
-    const sX = (scale.x / 100) * (isMirroredX ? -1 : 1);
-    const sY = scale.z / 100; // Three.js Y is height!
-    const sZ = (scale.y / 100) * (isMirroredY ? -1 : 1);
+    // Apply scale & rotation from CAD Editor using primitive coordinates
+    const scaleX = scale?.x ?? 100;
+    const scaleY = scale?.y ?? 100;
+    const scaleZ = scale?.z ?? 100;
+    const rotX = rotation?.x ?? 0;
+    const rotY = rotation?.y ?? 0;
+    const rotZ = rotation?.z ?? 0;
+
+    const sX = (scaleX / 100) * (isMirroredX ? -1 : 1);
+    const sY = scaleZ / 100; // Three.js Y is height!
+    const sZ = (scaleY / 100) * (isMirroredY ? -1 : 1);
     newModelGroup.scale.set(sX, sY, sZ);
 
-    newModelGroup.rotation.x = THREE.MathUtils.degToRad(rotation.x);
-    newModelGroup.rotation.y = THREE.MathUtils.degToRad(rotation.z);
-    newModelGroup.rotation.z = THREE.MathUtils.degToRad(rotation.y);
+    newModelGroup.rotation.x = THREE.MathUtils.degToRad(rotX);
+    newModelGroup.rotation.y = THREE.MathUtils.degToRad(rotZ);
+    newModelGroup.rotation.z = THREE.MathUtils.degToRad(rotY);
 
     scene.add(newModelGroup);
 
@@ -1190,7 +1201,16 @@ export default function ModelViewer3D({
     const box = new THREE.Box3().setFromObject(newModelGroup);
     const minZ = Math.max(0, box.min.y);
     const maxZ = Math.max(minZ + 10, box.max.y);
-    setModelBounds({ minZ, maxZ });
+    modelBoundsRef.current = { minZ, maxZ };
+
+    // Update clipping and laser plane to current layerProgress immediately
+    const progressFactor = Math.min(1.0, Math.max(0.0, layerProgress / 100));
+    const currentY = minZ + (maxZ - minZ) * progressFactor;
+    clipPlaneRef.current.constant = currentY;
+    if (laserPlaneRef.current) {
+      laserPlaneRef.current.position.y = currentY;
+      laserPlaneRef.current.visible = renderMode === "slice" || layerProgress < 100;
+    }
 
     // Update Bounding Box Box3 helper
     if (boundingBoxMeshRef.current) {
@@ -1207,19 +1227,24 @@ export default function ModelViewer3D({
     buildModelMesh,
     materialId,
     renderMode,
-    scale,
-    rotation,
+    scale?.x,
+    scale?.y,
+    scale?.z,
+    rotation?.x,
+    rotation?.y,
+    rotation?.z,
     isMirroredX,
     isMirroredY,
     technology,
     fileBuffer,
+    layerProgress,
   ]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // UPDATE LAYER SLICE LASER HEIGHT
   // ───────────────────────────────────────────────────────────────────────────
   useEffect(() => {
-    const { minZ, maxZ } = modelBounds;
+    const { minZ, maxZ } = modelBoundsRef.current;
     const progressFactor = Math.min(1.0, Math.max(0.0, layerProgress / 100));
     const currentY = minZ + (maxZ - minZ) * progressFactor;
 
@@ -1231,7 +1256,7 @@ export default function ModelViewer3D({
       laserPlaneRef.current.position.y = currentY;
       laserPlaneRef.current.visible = renderMode === "slice" || layerProgress < 100;
     }
-  }, [layerProgress, modelBounds, renderMode]);
+  }, [layerProgress, renderMode]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // PERSPECTIVE CAMERA QUICK-VIEWS
