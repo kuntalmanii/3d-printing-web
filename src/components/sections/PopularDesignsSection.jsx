@@ -34,6 +34,7 @@ const CATEGORIES = [
   "MECHANICAL ASSEMBLIES",
   "AEROSPACE & ROBOTICS",
   "BIOMEDICAL & KINETIC",
+  "ARCHITECTURAL & LIGHTING",
   "CUSTOM ENGINEERING",
 ];
 
@@ -43,10 +44,10 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
   // Stateful collection backed by localStorage
   const [designs, setDesigns] = useState(() => {
     try {
-      const saved = localStorage.getItem("nexus_vault_designs_v1");
+      const saved = localStorage.getItem("nexus_vault_designs_v2");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length >= POPULAR_DESIGNS.length) return parsed;
       }
     } catch {
       // Fallback
@@ -100,7 +101,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
   const updateDesigns = (next) => {
     setDesigns(next);
     try {
-      localStorage.setItem("nexus_vault_designs_v1", JSON.stringify(next));
+      localStorage.setItem("nexus_vault_designs_v2", JSON.stringify(next));
     } catch {
       // ignore
     }
@@ -132,6 +133,20 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
     if (selectedCategory === "ALL DESIGNS") return designs;
     return designs.filter((d) => d.category === selectedCategory);
   }, [designs, selectedCategory]);
+
+  // View More Pagination (6 designs initial batch)
+  const INITIAL_BATCH_SIZE = 6;
+  const [visibleCount, setVisibleCount] = useState(INITIAL_BATCH_SIZE);
+
+  const handleCategorySelect = (cat) => {
+    sound.playClick();
+    setSelectedCategory(cat);
+    setVisibleCount(INITIAL_BATCH_SIZE);
+  };
+
+  const displayedDesigns = useMemo(() => {
+    return filteredDesigns.slice(0, visibleCount);
+  }, [filteredDesigns, visibleCount]);
 
   const handleLoadIntoSlicer = (design) => {
     sound.playClick();
@@ -174,12 +189,18 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
       .filter(Boolean);
 
     const imageMap = {
-      calib: benchyImg,
-      gearbox: planetaryImg,
-      aero: turbofanImg,
-      dragon: dragonImg,
-      bio: cranialImg,
-      gyro: gyroImg,
+      calib: POPULAR_DESIGNS[0]?.image,
+      gearbox: POPULAR_DESIGNS[1]?.image,
+      aero: POPULAR_DESIGNS[2]?.image,
+      dragon: POPULAR_DESIGNS[3]?.image,
+      bio: POPULAR_DESIGNS[4]?.image,
+      gyro: POPULAR_DESIGNS[5]?.image,
+      lamp: POPULAR_DESIGNS[6]?.image,
+      turbofan: POPULAR_DESIGNS[7]?.image,
+      hand: POPULAR_DESIGNS[8]?.image,
+      calicat: POPULAR_DESIGNS[9]?.image,
+      aperture: POPULAR_DESIGNS[10]?.image,
+      upright: POPULAR_DESIGNS[11]?.image,
     };
 
     const newId = `VAULT-${Math.floor(100 + Math.random() * 900)}`;
@@ -423,10 +444,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
               <button
                 key={cat}
                 type="button"
-                onClick={() => {
-                  sound.playClick();
-                  setSelectedCategory(cat);
-                }}
+                onClick={() => handleCategorySelect(cat)}
                 className={`font-mono text-[11px] md:text-xs px-3.5 py-1.5 rounded-[1px] border transition-colors cursor-pointer uppercase tracking-wider font-semibold flex items-center gap-2 ${
                   isSelected
                     ? "bg-[#FF5A00] text-black border-[#FF5A00] font-bold"
@@ -448,7 +466,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
 
         {/* Responsive Grid Designs Showcase */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDesigns.map((design) => {
+          {displayedDesigns.map((design) => {
             const isDispatched = dispatchedId === design.id;
             const qty = getQty(design.id);
             const discount = qty >= 10 ? 0.9 : qty >= 5 ? 0.95 : 1;
@@ -681,6 +699,74 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
             );
           })}
         </div>
+
+        {/* VIEW MORE / SHOW LESS INDUSTRIAL EXPANDER CONTROLS */}
+        {filteredDesigns.length > INITIAL_BATCH_SIZE && (
+          <div className="pt-6 border-t border-[#262626] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono">
+            {/* Telemetry Progress & Count Indicator */}
+            <div className="flex items-center gap-3 text-xs text-[#A1A1AA]">
+              <span className="w-2 h-2 rounded-full bg-[#FF5A00] animate-pulse" />
+              <span>
+                DISPLAYING <strong className="text-white">{displayedDesigns.length}</strong> OF{" "}
+                <strong className="text-white">{filteredDesigns.length}</strong> VERIFIED MODELS
+              </span>
+              <div className="hidden md:block w-28 h-1.5 bg-[#1F1F1F] rounded-[1px] overflow-hidden border border-[#333333]">
+                <div
+                  className="h-full bg-[#FF5A00] transition-all duration-300"
+                  style={{
+                    width: `${(displayedDesigns.length / filteredDesigns.length) * 100}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Toggle Actions */}
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              {visibleCount < filteredDesigns.length ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setVisibleCount((prev) => Math.min(prev + 6, filteredDesigns.length));
+                    }}
+                    className="group flex-1 sm:flex-initial flex items-center justify-center gap-2 bg-[#FF5A00] hover:bg-[#D94D00] text-black font-extrabold uppercase px-6 py-2.5 rounded-[1px] border border-[#FF5A00] transition-all duration-200 cursor-pointer shadow-[0_0_20px_rgba(255,90,0,0.25)] text-xs tracking-wider"
+                  >
+                    <span>VIEW MORE DESIGNS (+{Math.min(6, filteredDesigns.length - visibleCount)})</span>
+                    <span className="transition-transform group-hover:translate-y-0.5 text-sm">▾</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      setVisibleCount(filteredDesigns.length);
+                    }}
+                    className="bg-[#181818] hover:bg-[#222222] text-[#A1A1AA] hover:text-white uppercase px-4 py-2.5 rounded-[1px] border border-[#333333] hover:border-[#555555] transition-colors cursor-pointer text-xs"
+                    title="Expand all models in this category"
+                  >
+                    [ VIEW ALL {filteredDesigns.length} ]
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    sound.playClick();
+                    setVisibleCount(INITIAL_BATCH_SIZE);
+                    const el = document.getElementById("popular-designs");
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                  }}
+                  className="group flex items-center justify-center gap-2 bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] uppercase px-6 py-2.5 rounded-[1px] border border-[#333333] hover:border-[#FF5A00] transition-colors cursor-pointer text-xs"
+                >
+                  <span>COLLAPSE TO TOP {INITIAL_BATCH_SIZE}</span>
+                  <span className="transition-transform group-hover:-translate-y-0.5 text-sm">▴</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ═════════════════════════════════════════════════════════════════════
@@ -741,6 +827,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                     <option value="MECHANICAL ASSEMBLIES">MECHANICAL ASSEMBLIES</option>
                     <option value="AEROSPACE & ROBOTICS">AEROSPACE & ROBOTICS</option>
                     <option value="BIOMEDICAL & KINETIC">BIOMEDICAL & KINETIC</option>
+                    <option value="ARCHITECTURAL & LIGHTING">ARCHITECTURAL & LIGHTING</option>
                     <option value="CALIBRATION & BENCHMARKS">CALIBRATION & BENCHMARKS</option>
                     <option value="CUSTOM ENGINEERING">CUSTOM ENGINEERING</option>
                   </select>
@@ -1030,6 +1117,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                     <option value="MECHANICAL ASSEMBLIES">MECHANICAL ASSEMBLIES</option>
                     <option value="AEROSPACE & ROBOTICS">AEROSPACE & ROBOTICS</option>
                     <option value="BIOMEDICAL & KINETIC">BIOMEDICAL & KINETIC</option>
+                    <option value="ARCHITECTURAL & LIGHTING">ARCHITECTURAL & LIGHTING</option>
                     <option value="CALIBRATION & BENCHMARKS">CALIBRATION & BENCHMARKS</option>
                     <option value="CUSTOM ENGINEERING">CUSTOM ENGINEERING</option>
                   </select>
