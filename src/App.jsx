@@ -142,7 +142,8 @@ function MainApplicationShell() {
       navigateToHome();
     }
     setTimeout(() => {
-      document.getElementById("user-panel")?.scrollIntoView({ behavior: "smooth" });
+      const target = document.getElementById("slicer-3d-viewport") || document.getElementById("user-panel");
+      target?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 60);
   };
 

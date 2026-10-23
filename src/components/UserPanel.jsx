@@ -190,6 +190,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
 
     const timer = setTimeout(() => {
       setSelectedFile({
+        id: loadedDesign.id,
         name: loadedDesign.filename || `${loadedDesign.title.toLowerCase().replace(/\s+/g, "_")}.stl`,
         sizeMB: loadedDesign.sizeMB || 3.5,
         dimensions: loadedDesign.dimensions || { x: 75, y: 55, z: 35 },
@@ -809,9 +810,9 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
                     </div>
 
                     {/* Industrial Interactive 3D WebGL Viewport */}
-                    <div className="relative">
+                    <div id="slicer-3d-viewport" className="relative scroll-mt-24">
                       <ModelViewer3D
-                        modelType={selectedFile.source || selectedFile.name}
+                        modelType={selectedFile.id || selectedFile.source || selectedFile.name}
                         fileName={selectedFile.name}
                         fileBuffer={uploadedFileBuffer}
                         dimensions={effectiveDims}

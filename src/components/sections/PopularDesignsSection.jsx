@@ -21,6 +21,7 @@
  */
 
 import { useState, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { formatINR } from "../../data/mockData";
 import { sound } from "../../utils/soundEffects";
 import { useToast } from "../../context/ToastContext";
@@ -772,11 +773,12 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
       {/* ═════════════════════════════════════════════════════════════════════
           ADD NEW DESIGN TO VAULT MODAL
       ═════════════════════════════════════════════════════════════════════ */}
-      {isAddModalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
-          onClick={() => setIsAddModalOpen(false)}
-        >
+      {isAddModalOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+            onClick={() => setIsAddModalOpen(false)}
+          >
           <div
             className="bg-[#141414] border border-[#333333] shadow-2xl rounded-[1px] w-full max-w-2xl max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -1059,17 +1061,19 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ═════════════════════════════════════════════════════════════════════
           EDIT VAULT DESIGN SPECIFICATIONS MODAL
       ═════════════════════════════════════════════════════════════════════ */}
-      {editingDesign && (
-        <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
-          onClick={() => setEditingDesign(null)}
-        >
+      {editingDesign &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+            onClick={() => setEditingDesign(null)}
+          >
           <div
             className="bg-[#141414] border border-[#333333] shadow-2xl rounded-[1px] w-full max-w-2xl max-h-[92vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -1308,17 +1312,19 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ═════════════════════════════════════════════════════════════════════
           TECHNICAL INSPECTION MODAL
       ═════════════════════════════════════════════════════════════════════ */}
-      {inspectingDesign && (
-        <div
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
-          onClick={() => setInspectingDesign(null)}
-        >
+      {inspectingDesign &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+            onClick={() => setInspectingDesign(null)}
+          >
           <div
             className="bg-[#141414] border border-[#333333] shadow-2xl rounded-[1px] w-full max-w-4xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -1522,7 +1528,8 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </section>
   );
