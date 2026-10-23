@@ -25,6 +25,7 @@ import { INITIAL_ORDERS, formatINR } from "../data/mockData";
 import { sound } from "../utils/soundEffects";
 import { useToast } from "../context/ToastContext";
 import ModelViewer3D from "./ModelViewer3D";
+import CheckoutModal from "./ui/CheckoutModal";
 
 // Extrusion Technologies
 const TECHNOLOGIES = [
@@ -178,6 +179,8 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   const [isEditorOpen, setIsEditorOpen] = useState(true);
   const [customModelName, setCustomModelName] = useState("");
   const [uploadedFileBuffer, setUploadedFileBuffer] = useState(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutConfig, setCheckoutConfig] = useState(null);
 
   // Sync loaded design from popular designs vault via effect
   const prevLoadedDesignSeqRef = useRef(null);
@@ -498,7 +501,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Order Submission Handler
+  // Order Submission Handler — Launches Procurement & Checkout Gateway
   const handleTransmitOrder = () => {
     if (!selectedFile) {
       sound.playAlert();
@@ -510,14 +513,10 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
       return;
     }
 
-    sound.playSuccess();
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const newOrderId = `NX-${randomSuffix}`;
+    sound.playClick();
     const activeFileName = customModelName.trim() || selectedFile?.name || "unnamed_cad_part.stl";
 
-    const newOrderPayload = {
-      id: newOrderId,
-      client: "Client Direct",
+    setCheckoutConfig({
       filename: activeFileName,
       volumeCm3: effectiveVolume,
       dimensions: effectiveDims,
@@ -526,32 +525,34 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
       wallLoops,
       technology,
       material: activeMaterial.name,
+      materialId: activeMaterial.id,
       infill,
       infillPattern,
       layerHeight: Number(layerHeight),
       priorityMode,
-      status: "QUEUED",
-      assignedPrinter: technology === "SLA" ? "RIG-02" : "RIG-01",
-      progress: 0,
       estimatedTime: quotation.durationFormatted,
       price: quotation.totalPrice,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (onNewOrder) {
-      onNewOrder(newOrderPayload);
-    }
-
-    setSuccessNotification(newOrderPayload);
-    setActiveTrackingId(newOrderId);
-    setSearchQuery(newOrderId);
-
-    addToast({
-      title: "Order Transmitted to Fleet",
-      message: `Order #${newOrderId} scheduled on ${newOrderPayload.assignedPrinter} (${activeMaterial.name})`,
-      type: "success",
-      orderId: newOrderId,
+      pricing: {
+        materialCost: quotation.materialCost,
+        runTimeCost: quotation.runTimeCost,
+        setupFee: quotation.setupFee,
+        postProcessingCost: quotation.postProcessingCost,
+        subtotal: quotation.subtotal,
+        tax: quotation.tax,
+        total: quotation.totalPrice,
+      },
     });
+
+    setIsCheckoutOpen(true);
+  };
+
+  const handleCheckoutSuccess = (completedOrder) => {
+    if (onNewOrder) {
+      onNewOrder(completedOrder);
+    }
+    setSuccessNotification(completedOrder);
+    setActiveTrackingId(completedOrder.id);
+    setSearchQuery(completedOrder.id);
   };
 
   // Active searched order for TAB 02
@@ -1868,6 +1869,16 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
             </div>
           )}
         </div>
+      )}
+
+      {/* Industrial Procurement & Checkout Gateway */}
+      {isCheckoutOpen && (
+        <CheckoutModal
+          isOpen={isCheckoutOpen}
+          onClose={() => setIsCheckoutOpen(false)}
+          orderConfig={checkoutConfig}
+          onOrderSuccess={handleCheckoutSuccess}
+        />
       )}
     </section>
   );

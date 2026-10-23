@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5050;
 const UPLOADS_DIR = path.resolve(__dirname, process.env.UPLOAD_DIR || 'uploads');
 const DATA_DIR = path.resolve(__dirname, 'data');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');

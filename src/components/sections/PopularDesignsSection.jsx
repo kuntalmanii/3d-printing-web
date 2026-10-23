@@ -26,6 +26,7 @@ import { formatINR } from "../../data/mockData";
 import { sound } from "../../utils/soundEffects";
 import { useToast } from "../../context/ToastContext";
 import ModelViewer3D from "../ModelViewer3D";
+import CheckoutModal from "../ui/CheckoutModal";
 
 import { POPULAR_DESIGNS } from "../../data/popularDesigns";
 
@@ -65,6 +66,8 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
   // Modals state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingDesign, setEditingDesign] = useState(null);
+  const [checkoutDesign, setCheckoutDesign] = useState(null);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
 
   // Add Design Form State
   const [newDesignForm, setNewDesignForm] = useState({
@@ -327,37 +330,43 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
   };
 
   const handleInstantDispatch = (design, customQty = null) => {
-    sound.playSuccess();
+    sound.playClick();
     const qty = customQty || getQty(design.id);
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-
-    // Bulk discount: 5% off for 5+, 10% off for 10+
     const discount = qty >= 10 ? 0.9 : qty >= 5 ? 0.95 : 1;
     const computedPrice = Math.round(design.price * qty * discount);
 
-    const orderPayload = {
-      id: `NX-${randomSuffix}`,
-      client: "Benchmark Vault Direct",
+    setCheckoutDesign({
+      id: design.id,
       filename: qty > 1 ? `${design.filename} (${qty}x Units)` : design.filename,
       volumeCm3: Math.round(design.volumeCm3 * qty),
       dimensions: design.dimensions,
       technology: design.technology,
       material: design.recommendedMaterial,
+      materialId: design.recommendedMaterialId || (design.technology === "SLA" ? "resin-tough" : "pa-cf"),
       infill: 40,
+      infillPattern: "Gyroid",
       layerHeight: design.technology === "SLA" ? 0.08 : 0.16,
-      status: "QUEUED",
-      assignedPrinter: design.technology === "SLA" ? "RIG-02" : "RIG-04",
-      progress: 0,
       estimatedTime: design.printTime,
       price: computedPrice,
-      createdAt: new Date().toISOString(),
-    };
+      pricing: {
+        materialCost: Math.round(computedPrice * 0.45),
+        runTimeCost: Math.round(computedPrice * 0.35),
+        setupFee: 420,
+        postProcessingCost: 0,
+        subtotal: computedPrice,
+        tax: Math.round(computedPrice * 0.18),
+        total: Math.round(computedPrice * 1.18),
+      },
+    });
 
+    setIsCheckoutOpen(true);
+  };
+
+  const handleCheckoutSuccess = (completedOrder) => {
     if (onDirectDispatch) {
-      onDirectDispatch(orderPayload);
+      onDirectDispatch(completedOrder);
     }
-
-    setDispatchedId(design.id);
+    setDispatchedId(completedOrder.id);
     setTimeout(() => setDispatchedId(null), 3000);
   };
 
@@ -1530,6 +1539,16 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
           </div>
         </div>,
         document.body
+      )}
+
+      {/* Industrial Procurement & Checkout Gateway */}
+      {isCheckoutOpen && (
+        <CheckoutModal
+          isOpen={isCheckoutOpen}
+          onClose={() => setIsCheckoutOpen(false)}
+          orderConfig={checkoutDesign}
+          onOrderSuccess={handleCheckoutSuccess}
+        />
       )}
     </section>
   );

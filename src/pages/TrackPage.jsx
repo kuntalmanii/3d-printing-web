@@ -84,7 +84,7 @@ export default function TrackPage({ onBack }) {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />
-            <span>NEXUS-3D-API: ONLINE (127.0.0.1:5000) • AUSTIN ADVANCED ADDITIVE FACILITY</span>
+            <span>NEXUS-3D-API: ONLINE (127.0.0.1:5050) • AUSTIN ADVANCED ADDITIVE FACILITY</span>
           </div>
           <div>
             <span>SYSTEM PROTOCOL: ISO-9001 / AS9100D AUDITED • 256-BIT ENCRYPTED TELEMETRY</span>
