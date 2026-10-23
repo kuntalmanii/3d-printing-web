@@ -23,6 +23,40 @@ export default function CommandPalette({
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
 
+  // Recent commands history persisted in localStorage
+  const [recentActions, setRecentActions] = useState(() => {
+    try {
+      const stored = localStorage.getItem("nexus_recent_actions");
+      return stored
+        ? JSON.parse(stored)
+        : [
+            { label: "JUMP TO SLICER & ESTIMATOR", type: "scroll", target: "user-panel", tag: "#SLICER" },
+            { label: "EXPLORE CURATED BENCHMARK VAULT", type: "scroll", target: "popular-designs", tag: "#VAULT" },
+            { label: "TRACK PRODUCTION DISPATCH", type: "track", tag: "#TRACK" },
+          ];
+    } catch {
+      return [];
+    }
+  });
+
+  const recordAction = (action) => {
+    setRecentActions((prev) => {
+      const filtered = prev.filter((a) => a.label !== action.label);
+      const updated = [action, ...filtered].slice(0, 4);
+      try {
+        localStorage.setItem("nexus_recent_actions", JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
+  const clearRecent = () => {
+    setRecentActions([]);
+    try {
+      localStorage.removeItem("nexus_recent_actions");
+    } catch {}
+  };
+
   const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
   if (!isOpen && prevIsOpen) {
     setPrevIsOpen(false);
@@ -104,6 +138,57 @@ export default function CommandPalette({
 
         {/* Results List */}
         <div className="max-h-[60vh] overflow-y-auto p-3 space-y-4 font-mono text-xs">
+          {/* Recent Commands History */}
+          {!normalizedQuery && recentActions.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between px-2 mb-1.5">
+                <span className="text-[10px] text-[#FF5A00] uppercase tracking-wider font-bold">
+                  // RECENT COMMANDS &amp; HISTORY
+                </span>
+                <button
+                  type="button"
+                  onClick={clearRecent}
+                  className="text-[9px] text-[#71717A] hover:text-[#A1A1AA] uppercase cursor-pointer"
+                >
+                  CLEAR
+                </button>
+              </div>
+              <div className="space-y-1">
+                {recentActions.map((action, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      sound.playClick();
+                      if (action.type === "track") {
+                        onTrack?.();
+                      } else if (action.type === "design") {
+                        const target = popularDesigns.find((d) => d.id === action.targetId);
+                        if (target) onSelectDesign?.(target);
+                      } else {
+                        onScrollTo?.(action.target);
+                      }
+                      onClose();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40 border border-transparent flex items-center justify-between group transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-[#FF5A00]">↺</span>
+                      <span className="text-white group-hover:text-[#FF5A00] font-medium">
+                        {action.label}
+                      </span>
+                    </div>
+                    {action.tag && (
+                      <kbd className="text-[10px] text-[#71717A] bg-[#1a1a1a] px-1.5 py-0.5 border border-[#333333]">
+                        {action.tag}
+                      </kbd>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Quick View Controls */}
           <div>
             <span className="text-[10px] text-[#71717A] uppercase tracking-wider block px-2 mb-1.5">
@@ -114,6 +199,12 @@ export default function CommandPalette({
                 type="button"
                 onClick={() => {
                   sound.playClick();
+                  recordAction({
+                    label: "JUMP TO SLICER & ESTIMATOR",
+                    type: "scroll",
+                    target: "user-panel",
+                    tag: "#SLICER",
+                  });
                   onScrollTo?.("user-panel");
                   onClose();
                 }}

@@ -457,7 +457,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
             return (
               <div
                 key={design.id}
-                className="bg-[#141414] border border-[#333333] rounded-[1px] overflow-hidden flex flex-col justify-between group hover:border-[#FF5A00] transition-all duration-300 shadow-sm"
+                className="card-interactive bg-[#141414] border border-[#333333] rounded-[1px] overflow-hidden flex flex-col justify-between group hover:border-[#FF5A00] hover:shadow-[0_0_25px_rgba(255,90,0,0.18)] transition-all duration-300 shadow-sm"
               >
                 <div>
                   {/* High-Resolution Photography / 3D Specimen Container */}

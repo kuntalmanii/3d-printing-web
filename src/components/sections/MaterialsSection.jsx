@@ -10,6 +10,7 @@
  */
 
 import { useState } from "react";
+import { sound } from "../../utils/soundEffects";
 
 const MATERIALS_DATA = [
   {
@@ -133,6 +134,12 @@ const QA_CARDS = [
 
 export default function MaterialsSection() {
   const [filterType, setFilterType] = useState("ALL");
+  const [expandedRowId, setExpandedRowId] = useState(null);
+
+  const toggleRow = (id) => {
+    sound.playClick();
+    setExpandedRowId((prev) => (prev === id ? null : id));
+  };
 
   const filteredMaterials =
     filterType === "ALL"
@@ -223,19 +230,19 @@ export default function MaterialsSection() {
               {/* Header Row */}
               <thead>
                 <tr className="bg-[#161616] border-b border-[#333333] font-mono text-[11px] uppercase tracking-wider text-[#A1A1AA]">
-                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[200px]">
+                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[210px]">
                     MATERIAL NAME
                   </th>
-                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[220px]">
+                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[210px]">
                     BASE POLYMER
                   </th>
-                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[140px]">
+                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[160px]">
                     TENSILE STRENGTH
                   </th>
-                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[140px]">
+                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[160px]">
                     HEAT DEFLECTION (HDT)
                   </th>
-                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[200px]">
+                  <th className="py-3.5 px-4 font-semibold border-r border-[#262626] w-[190px]">
                     INFILL RECOMMENDATIONS
                   </th>
                   <th className="py-3.5 px-4 font-semibold">
@@ -244,16 +251,19 @@ export default function MaterialsSection() {
                 </tr>
               </thead>
 
-              {/* Body Rows with High-Contrast Striping & #FF5A00/10 hover */}
+              {/* Body Rows with High-Contrast Striping & Interactive Expansion */}
               <tbody>
                 {filteredMaterials.map((mat, idx) => {
                   const isEven = idx % 2 === 0;
+                  const isExpanded = expandedRowId === mat.id;
+
                   return (
                     <tr
                       key={mat.id}
+                      onClick={() => toggleRow(mat.id)}
                       className={`
-                        border-b border-[#262626] transition-colors duration-150 group
-                        ${isEven ? "bg-[#111111]" : "bg-[#141414]"}
+                        border-b border-[#262626] transition-colors duration-150 group cursor-pointer select-none
+                        ${isExpanded ? "bg-[#FF5A00]/10 border-b-0" : isEven ? "bg-[#111111]" : "bg-[#141414]"}
                         hover:bg-[#FF5A00]/10 hover:border-[#FF5A00]/40
                       `}
                     >
@@ -264,11 +274,16 @@ export default function MaterialsSection() {
                             className="w-2 h-2 rounded-full flex-shrink-0"
                             style={{ backgroundColor: mat.typeColor }}
                           />
-                          <div>
-                            <div className="font-mono text-[13px] font-bold text-white group-hover:text-[#FF5A00] transition-colors">
-                              {mat.name}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-mono text-[13px] font-bold text-white group-hover:text-[#FF5A00] transition-colors">
+                                {mat.name}
+                              </span>
+                              <span className="font-mono text-[10px] text-[#FF5A00] font-bold ml-2">
+                                {isExpanded ? "[-]" : "[+]"}
+                              </span>
                             </div>
-                            <span className="font-mono text-[10px] text-[#71717A] tracking-wider uppercase">
+                            <span className="font-mono text-[10px] text-[#71717A] tracking-wider uppercase block">
                               [{mat.type} PROCESS • {mat.density}]
                             </span>
                           </div>
@@ -281,32 +296,42 @@ export default function MaterialsSection() {
                           {mat.polymer}
                         </span>
                         <div className="font-mono text-[10px] text-[#71717A] mt-0.5">
-                          ELONGATION: {mat.elongation}
+                          ELONGATION: <strong className="text-white">{mat.elongation}</strong>
                         </div>
                       </td>
 
-                      {/* 3. Tensile Strength */}
+                      {/* 3. Tensile Strength with Scale Bar */}
                       <td className="py-4 px-4 border-r border-[#262626] group-hover:border-[#FF5A00]/20">
-                        <div className="font-mono text-[13px] font-bold text-white group-hover:text-[#FF5A00]">
-                          {mat.tensileStrength}
+                        <div className="flex items-center justify-between font-mono text-[13px] font-bold text-white group-hover:text-[#FF5A00]">
+                          <span>{mat.tensileStrength}</span>
+                          <span className="text-[10px] text-[#71717A]">
+                            {Math.round((mat.tensileRaw / 120) * 100)}%
+                          </span>
                         </div>
                         {/* Visual Strength Bar */}
-                        <div className="w-full h-1 bg-[#262626] mt-1.5 overflow-hidden">
+                        <div className="w-full h-1.5 bg-[#262626] mt-1.5 overflow-hidden rounded-[1px]">
                           <div
-                            className="h-full bg-[#FF5A00]"
+                            className="h-full bg-gradient-to-r from-[#FF5A00]/70 to-[#FF5A00] transition-all duration-300"
                             style={{ width: `${Math.min(100, (mat.tensileRaw / 120) * 100)}%` }}
                           />
                         </div>
                       </td>
 
-                      {/* 4. Heat Deflection Temp */}
+                      {/* 4. Heat Deflection Temp with Thermal Scale Bar */}
                       <td className="py-4 px-4 border-r border-[#262626] group-hover:border-[#FF5A00]/20">
-                        <div className="font-mono text-[13px] font-bold text-white">
-                          {mat.hdt}
+                        <div className="flex items-center justify-between font-mono text-[13px] font-bold text-white">
+                          <span>{mat.hdt}</span>
+                          <span className="text-[10px] text-[#71717A]">
+                            @ 0.45 MPa
+                          </span>
                         </div>
-                        <span className="font-mono text-[10px] text-[#71717A]">
-                          @ 0.45 MPa
-                        </span>
+                        {/* Visual Thermal Bar (0 to 180°C) */}
+                        <div className="w-full h-1.5 bg-[#262626] mt-1.5 overflow-hidden rounded-[1px]">
+                          <div
+                            className="h-full bg-gradient-to-r from-sky-500 via-amber-500 to-[#FF5A00] transition-all duration-300"
+                            style={{ width: `${Math.min(100, (mat.hdtRaw / 180) * 100)}%` }}
+                          />
+                        </div>
                       </td>
 
                       {/* 5. Infill Recommendations */}
@@ -319,9 +344,25 @@ export default function MaterialsSection() {
                         </span>
                       </td>
 
-                      {/* 6. Primary Applications */}
+                      {/* 6. Primary Applications & Expand Drawer */}
                       <td className="py-4 px-4 text-[#A1A1AA] leading-relaxed text-[12px]">
-                        {mat.applications}
+                        <div>{mat.applications}</div>
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-[#333333] grid grid-cols-3 gap-3 font-mono text-[10px] text-[#A1A1AA]">
+                            <div>
+                              <span className="text-[#71717A] block">// THERMAL LIMIT</span>
+                              <strong className="text-white">{mat.hdt} Continuous</strong>
+                            </div>
+                            <div>
+                              <span className="text-[#71717A] block">// TENSILE MODULUS</span>
+                              <strong className="text-white">{mat.tensileRaw * 28} MPa</strong>
+                            </div>
+                            <div>
+                              <span className="text-[#71717A] block">// ADHERENCE STANDARD</span>
+                              <strong className="text-white">ISO 527-2 / ASTM D638</strong>
+                            </div>
+                          </div>
+                        )}
                       </td>
                     </tr>
                   );

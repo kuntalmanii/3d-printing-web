@@ -35,6 +35,78 @@ import { useToast } from "../context/ToastContext";
 
 const STAGES = ["QUEUED", "PRINTING", "POST_PROCESSING", "DISPATCHED"];
 
+function ThroughputSparklineChart() {
+  const hourlyData = [
+    { hour: "00:00", rate: 42 },
+    { hour: "03:00", rate: 58 },
+    { hour: "06:00", rate: 75 },
+    { hour: "09:00", rate: 92 },
+    { hour: "12:00", rate: 110 },
+    { hour: "15:00", rate: 98 },
+    { hour: "18:00", rate: 104 },
+    { hour: "21:00", rate: 85 },
+  ];
+
+  const maxRate = 120;
+  const width = 420;
+  const height = 54;
+  const points = hourlyData
+    .map((d, i) => {
+      const x = (i / (hourlyData.length - 1)) * (width - 20) + 10;
+      const y = height - (d.rate / maxRate) * (height - 14) - 6;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  return (
+    <div className="bg-[#111111] border border-[#2a2a2a] p-3 rounded-[1px] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mt-4">
+      <div>
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-ping" />
+          <span className="font-mono text-[10px] text-[#FF5A00] uppercase tracking-widest font-bold">
+            24H FABRICATION THROUGHPUT &amp; LAYER YIELD
+          </span>
+        </div>
+        <div className="flex items-baseline gap-2 mt-1">
+          <span className="font-sans font-bold text-lg text-white">845 cm³/hr</span>
+          <span className="font-mono text-[10px] text-[#22C55E]">↑ +14.2% VS 7D AVG</span>
+          <span className="font-mono text-[10px] text-[#71717A]">• 99.4% FIRST-LAYER ADHESION</span>
+        </div>
+      </div>
+
+      <div className="w-full md:w-auto flex items-center gap-3">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full md:w-64 h-12 overflow-visible">
+          <defs>
+            <linearGradient id="sparkline-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#FF5A00" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#FF5A00" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+          <polygon
+            points={`10,${height} ${points} ${width - 10},${height}`}
+            fill="url(#sparkline-grad)"
+          />
+          <polyline
+            points={points}
+            fill="none"
+            stroke="#FF5A00"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <circle
+            cx={width - 10}
+            cy={height - (hourlyData[hourlyData.length - 1].rate / maxRate) * (height - 14) - 6}
+            r="3.5"
+            fill="#FF5A00"
+            className="animate-pulse"
+          />
+        </svg>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel({
   fleet = INITIAL_FLEET,
   orders = INITIAL_ORDERS,
@@ -232,6 +304,9 @@ export default function AdminPanel({
             )}
           </div>
         </div>
+
+        {/* 24h Fabrication Sparkline Telemetry */}
+        <ThroughputSparklineChart />
 
         {/* 3-Tab Sub-Navigation Interface */}
         <nav className="flex items-center gap-2 mt-5 border-t border-[#262626] pt-4 overflow-x-auto">

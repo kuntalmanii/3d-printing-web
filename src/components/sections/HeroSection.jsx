@@ -12,7 +12,7 @@
  *  10 → Nav, hero copy, telemetry bar
  */
 
-import { useRef, useMemo, useEffect } from "react";
+import { useRef, useMemo, useEffect, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { sound } from "../../utils/soundEffects";
@@ -236,6 +236,69 @@ const TELEMETRY = [
   { label: "DISPATCH WINDOW",   value: "24–48 HRS" },
 ];
 
+function AnimatedTelemetryItem({ label, finalValue, idx, isLast }) {
+  const [displayValue, setDisplayValue] = useState(() => {
+    if (label.includes("RESOLUTION")) return "0.00 MM";
+    if (label.includes("ENVELOPE")) return "0 × 0 × 0 MM";
+    if (label.includes("DISPATCH")) return "0 HRS";
+    return finalValue;
+  });
+
+  useEffect(() => {
+    let frameId;
+    const startTime = performance.now();
+    const duration = 1400; // 1.4s smooth animation
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // ease-out cubic
+      const ease = 1 - Math.pow(1 - progress, 3);
+
+      if (label.includes("RESOLUTION")) {
+        const val = (0.08 * ease).toFixed(2);
+        setDisplayValue(`${val} MM`);
+      } else if (label.includes("ENVELOPE")) {
+        const dim = Math.round(256 * ease);
+        setDisplayValue(`${dim} × ${dim} × ${dim} MM`);
+      } else if (label.includes("DISPATCH")) {
+        const h1 = Math.round(24 * ease);
+        const h2 = Math.round(48 * ease);
+        setDisplayValue(`${h1}–${h2} HRS`);
+      } else {
+        setDisplayValue(finalValue);
+      }
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+
+    frameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frameId);
+  }, [label, finalValue]);
+
+  return (
+    <div
+      className={[
+        "flex flex-col gap-[6px] px-6 md:px-8 py-5 group hover:bg-[#161616] transition-colors",
+        !isLast ? "border-r border-[#333333]" : "",
+        idx < 2 ? "max-md:border-b max-md:border-[#333333]" : "",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#A1A1AA] group-hover:text-[#FF5A00] transition-colors">
+          {label}
+        </span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00]/40 group-hover:bg-[#FF5A00] transition-colors" />
+      </div>
+      <span className="font-mono text-[13px] font-semibold tracking-[0.05em] text-white">
+        {displayValue}
+      </span>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════
    5. HERO SECTION — MAIN EXPORT
 ═══════════════════════════════════════════════════════════════ */
@@ -388,7 +451,7 @@ export default function HeroSection({ onNavigateTrack, onScrollTo, hideNav = tru
 
         {/* Main headline */}
         <h1
-          className="font-sans font-medium text-white leading-[1.04] mb-7"
+          className="font-sans font-medium text-white text-gradient-industrial leading-[1.04] mb-7"
           style={{
             fontSize: "clamp(2.75rem, 5.8vw, 4rem)",
             animation: "fade-in 0.5s ease-out 0.2s both",
@@ -414,7 +477,7 @@ export default function HeroSection({ onNavigateTrack, onScrollTo, hideNav = tru
           className="flex flex-wrap items-center gap-3"
           style={{ animation: "fade-in 0.5s ease-out 0.4s both" }}
         >
-          {/* Primary CTA */}
+          {/* Primary CTA with breathing orange heartbeat */}
           <button
             id="cta-upload-quote"
             type="button"
@@ -435,6 +498,7 @@ export default function HeroSection({ onNavigateTrack, onScrollTo, hideNav = tru
               transition-all duration-150
               active:scale-[0.98]
               cursor-pointer shadow-[0_0_20px_rgba(255,90,0,0.35)]
+              cta-pulse
             "
           >
             [ UPLOAD 3D FILE / INSTANT QUOTE ]
@@ -496,29 +560,20 @@ export default function HeroSection({ onNavigateTrack, onScrollTo, hideNav = tru
         </div>
       </div>
 
-      {/* ── [z:10] TELEMETRY BAR ─────────────────────────────── */}
+      {/* ── [z:10] TELEMETRY BAR (ANIMATED COUNTERS) ────────── */}
       <div
-        className="relative z-10 border-t border-[#333333] grid grid-cols-2 md:grid-cols-4"
+        className="relative z-10 border-t border-[#333333] grid grid-cols-2 md:grid-cols-4 bg-[#111111]/90 backdrop-blur-sm"
         role="complementary"
         aria-label="Machine fleet specifications"
       >
         {TELEMETRY.map((item, idx) => (
-          <div
+          <AnimatedTelemetryItem
             key={item.label}
-            className={[
-              "flex flex-col gap-[6px] px-6 md:px-8 py-5",
-              idx < TELEMETRY.length - 1 ? "border-r border-[#333333]" : "",
-              // Mobile: bottom border for first row
-              idx < 2 ? "max-md:border-b max-md:border-[#333333]" : "",
-            ].join(" ")}
-          >
-            <span className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#A1A1AA]">
-              {item.label}
-            </span>
-            <span className="font-mono text-[13px] font-semibold tracking-[0.05em] text-white">
-              {item.value}
-            </span>
-          </div>
+            label={item.label}
+            finalValue={item.value}
+            idx={idx}
+            isLast={idx === TELEMETRY.length - 1}
+          />
         ))}
       </div>
     </section>

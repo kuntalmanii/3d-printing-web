@@ -700,7 +700,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* ── LEFT COLUMN: FILE INGESTION & BOUNDING BOX (5 Cols) ────── */}
             <div className="lg:col-span-5 space-y-5">
-              <div className="border border-[#333333] bg-[#141414] rounded-[1px] p-5">
+              <div className="card-interactive border border-[#333333] bg-[#141414] rounded-[1px] p-5">
                 <div className="flex items-center justify-between border-b border-[#262626] pb-3 mb-4 font-mono text-[11px]">
                   <span className="text-[#FF5A00] uppercase font-bold tracking-wider">
                     // 01. INGESTION &amp; BOUNDING BOX
@@ -1233,7 +1233,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
 
             {/* ── RIGHT COLUMN: SLICING CONFIGURATOR & QUOTATION (7 Cols) ─ */}
             <div className="lg:col-span-7 space-y-6">
-              <div className="border border-[#333333] bg-[#141414] rounded-[1px] p-6 space-y-6">
+              <div className="card-interactive border border-[#333333] bg-[#141414] rounded-[1px] p-6 space-y-6">
                 <div className="flex items-center justify-between border-b border-[#262626] pb-3 font-mono text-[11px]">
                   <span className="text-[#FF5A00] uppercase font-bold tracking-wider">
                     // 02. SLICING CONFIGURATOR &amp; QUOTATION ENGINE

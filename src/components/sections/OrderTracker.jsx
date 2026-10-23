@@ -563,12 +563,12 @@ export default function OrderTracker({ initialId = "NX-88492", isStandalonePage 
 
             {/* Background connecting timeline track */}
             <div
-              className="absolute top-[28px] left-[10%] right-[10%] h-[2px] bg-[#333333] z-0"
+              className="absolute top-[28px] left-[10%] right-[10%] h-[3px] bg-[#262626] z-0 overflow-hidden"
               aria-hidden="true"
             >
-              {/* Completed filled portion */}
+              {/* Completed filled portion with glowing animated gradient */}
               <div
-                className="h-full bg-gradient-to-r from-white via-[#FF5A00] to-[#FF5A00] transition-all duration-500"
+                className="h-full bg-gradient-to-r from-white via-[#FF7A29] to-[#FF5A00] transition-all duration-500 shadow-[0_0_14px_rgba(255,90,0,0.8)]"
                 style={{
                   width: `${(activeStageIndex / (STAGES.length - 1)) * 100}%`,
                 }}

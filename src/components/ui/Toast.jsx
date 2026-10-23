@@ -56,8 +56,13 @@ export function ToastProvider({ children }) {
           return (
             <div
               key={toast.id}
-              className="pointer-events-auto bg-[#141414]/95 backdrop-blur-md border border-[#333333] shadow-2xl p-4 rounded-[1px] relative overflow-hidden transition-all duration-300 animate-fade-in"
-              style={{ borderLeftColor: accentColor, borderLeftWidth: "3px" }}
+              className="pointer-events-auto bg-[#141414]/95 backdrop-blur-md border border-[#333333] shadow-2xl p-4 rounded-[1px] relative overflow-hidden transition-all duration-300"
+              style={{
+                borderLeftColor: accentColor,
+                borderLeftWidth: "3px",
+                animation: "toast-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both",
+                boxShadow: `0 10px 30px rgba(0,0,0,0.7), 0 0 20px ${accentColor}25`,
+              }}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">

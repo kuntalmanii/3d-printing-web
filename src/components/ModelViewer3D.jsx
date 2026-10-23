@@ -1021,6 +1021,24 @@ export default function ModelViewer3D({
         </div>
       )}
 
+      {/* ── CAD AXIS ORIENTATION GIZMO WIDGET (X, Y, Z) ────────────────── */}
+      {showControls && (
+        <div className="absolute top-12 left-3 pointer-events-auto z-10 bg-[#0d0d0d]/90 backdrop-blur-md border border-[#333333] px-2.5 py-1.5 rounded-[1px] shadow-lg flex items-center gap-3">
+          <div className="relative w-7 h-7 flex items-center justify-center">
+            {/* Coordinate Triad Axes */}
+            <div className="absolute w-[2px] h-4 bg-[#22C55E] bottom-3.5 origin-bottom" title="Y-Axis: Height (+Y)" />
+            <div className="absolute h-[2px] w-4 bg-[#EF4444] left-3.5 origin-left" title="X-Axis: Width (+X)" />
+            <div className="absolute h-[2px] w-3.5 bg-[#3B82F6] origin-left -rotate-45 left-3.5" title="Z-Axis: Depth (+Z)" />
+            <span className="w-1.5 h-1.5 rounded-full bg-white absolute" />
+          </div>
+          <div className="flex flex-col text-[8px] font-mono leading-tight tracking-wider">
+            <span className="text-[#EF4444] font-bold">X: ±WIDTH</span>
+            <span className="text-[#22C55E] font-bold">Y: ±HEIGHT</span>
+            <span className="text-[#3B82F6] font-bold">Z: ±DEPTH</span>
+          </div>
+        </div>
+      )}
+
       {/* ── BOTTOM HUD BAR: Slicing Scrubber & Interactive Telemetry ───── */}
       {showControls && (
         <div className="absolute bottom-2.5 inset-x-3 pointer-events-none z-10 space-y-2">

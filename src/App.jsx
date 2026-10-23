@@ -28,6 +28,7 @@ import MaterialsSection from "./components/sections/MaterialsSection";
 import TrackPage from "./pages/TrackPage";
 import AdminPage from "./pages/AdminPage";
 import CommandPalette from "./components/ui/CommandPalette";
+import MobileNav from "./components/layout/MobileNav";
 import { ToastProvider } from "./components/ui/Toast";
 import { INITIAL_ORDERS, INITIAL_FLEET, INITIAL_INVENTORY } from "./data/mockData";
 import { sound } from "./utils/soundEffects";
@@ -312,39 +313,76 @@ function MainApplicationShell() {
     };
   }, []);
 
+  const [activeSection, setActiveSection] = useState("slicer");
+
+  // Track active section for top header & mobile nav highlights
+  useEffect(() => {
+    if (currentRoute !== "home") return;
+
+    const sections = [
+      { id: "slicer", el: document.getElementById("user-panel") },
+      { id: "vault", el: document.getElementById("popular-designs") },
+      { id: "materials", el: document.getElementById("materials-section") },
+    ];
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const found = sections.find((s) => s.el === entry.target);
+            if (found) setActiveSection(found.id);
+          }
+        });
+      },
+      { threshold: 0.2, rootMargin: "-10% 0px -40% 0px" }
+    );
+
+    sections.forEach(({ el }) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [currentRoute]);
+
   const navigateToHome = () => {
     window.location.hash = "#/";
     setCurrentRoute("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Standalone Route 1: Order Tracking Page
+  // Standalone Route 1: Order Tracking Page (With smooth route transition)
   if (currentRoute === "track") {
-    return <TrackPage onBack={navigateToHome} />;
+    return (
+      <div key="track-route" className="animate-fade-in">
+        <TrackPage onBack={navigateToHome} />
+      </div>
+    );
   }
 
-  // Standalone Route 2: Operator & Admin Console (Only Accessible via URL #/admin or /admin)
+  // Standalone Route 2: Operator & Admin Console (With smooth route transition)
   if (currentRoute === "admin") {
     return (
-      <AdminPage
-        fleet={fleet}
-        orders={orders}
-        inventory={inventory}
-        onUpdateOrderStatus={handleUpdateOrderStatus}
-        onRestockInventory={handleRestockInventory}
-        onEmergencyStop={handleEmergencyStop}
-        isAuthenticated={isAdminAuthenticated}
-        onAuthenticate={handleAuthSuccess}
-        onLogout={handleLockConsole}
-        onBackToClient={navigateToHome}
-      />
+      <div key="admin-route" className="animate-fade-in">
+        <AdminPage
+          fleet={fleet}
+          orders={orders}
+          inventory={inventory}
+          onUpdateOrderStatus={handleUpdateOrderStatus}
+          onRestockInventory={handleRestockInventory}
+          onEmergencyStop={handleEmergencyStop}
+          isAuthenticated={isAdminAuthenticated}
+          onAuthenticate={handleAuthSuccess}
+          onLogout={handleLockConsole}
+          onBackToClient={navigateToHome}
+        />
+      </div>
     );
   }
 
   const activeRigsCount = fleet.filter((r) => r.status === "ACTIVE").length;
 
   return (
-    <div className="min-h-screen bg-[#111111] text-white selection:bg-[#FF5A00] selection:text-white flex flex-col font-sans">
+    <div className="min-h-screen bg-[#111111] text-white selection:bg-[#FF5A00] selection:text-white flex flex-col font-sans pb-16 md:pb-0">
       {/* ═════════════════════════════════════════════════════════════════════
           TOP STICKY INDUSTRIAL COMMAND BAR (PUBLIC CLIENT INTERFACE)
       ═════════════════════════════════════════════════════════════════════ */}
@@ -372,12 +410,16 @@ function MainApplicationShell() {
             </div>
           </div>
 
-          {/* Center: In-Page Section Jump Shortcuts */}
+          {/* Center: In-Page Section Jump Shortcuts with Live Active Section Glow */}
           <div className="hidden xl:flex items-center gap-1 text-[11px] font-mono text-[#A1A1AA]">
             <button
               type="button"
               onClick={() => handleScrollTo("user-panel")}
-              className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors cursor-pointer"
+              className={`px-2.5 py-1 rounded-[1px] transition-all cursor-pointer ${
+                activeSection === "slicer"
+                  ? "text-[#FF5A00] font-bold bg-[#FF5A00]/10 border border-[#FF5A00]/40 shadow-[0_0_10px_rgba(255,90,0,0.2)]"
+                  : "hover:text-white hover:bg-[#222222] border border-transparent"
+              }`}
             >
               // SLICER
             </button>
@@ -385,7 +427,11 @@ function MainApplicationShell() {
             <button
               type="button"
               onClick={() => handleScrollTo("popular-designs")}
-              className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors cursor-pointer"
+              className={`px-2.5 py-1 rounded-[1px] transition-all cursor-pointer ${
+                activeSection === "vault"
+                  ? "text-[#FF5A00] font-bold bg-[#FF5A00]/10 border border-[#FF5A00]/40 shadow-[0_0_10px_rgba(255,90,0,0.2)]"
+                  : "hover:text-white hover:bg-[#222222] border border-transparent"
+              }`}
             >
               // CURATED VAULT
             </button>
@@ -393,7 +439,11 @@ function MainApplicationShell() {
             <button
               type="button"
               onClick={() => handleScrollTo("materials-section")}
-              className="hover:text-white px-2 py-1 rounded-[1px] hover:bg-[#222222] transition-colors cursor-pointer"
+              className={`px-2.5 py-1 rounded-[1px] transition-all cursor-pointer ${
+                activeSection === "materials"
+                  ? "text-[#FF5A00] font-bold bg-[#FF5A00]/10 border border-[#FF5A00]/40 shadow-[0_0_10px_rgba(255,90,0,0.2)]"
+                  : "hover:text-white hover:bg-[#222222] border border-transparent"
+              }`}
             >
               // MATERIALS MATRIX
             </button>
@@ -487,49 +537,100 @@ function MainApplicationShell() {
       {/* 2. Client Production Workspace & Catalog Modules */}
       <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-12">
         {/* Executive Overview Header */}
-        <ExecutiveHero fleet={fleet} onScrollTo={handleScrollTo} />
+        <section className="reveal-init is-revealed">
+          <ExecutiveHero fleet={fleet} onScrollTo={handleScrollTo} />
+        </section>
 
         {/* Client Production Panel */}
-        <UserPanel orders={orders} onNewOrder={handleNewOrder} loadedDesign={loadedDesign} />
+        <section className="reveal-init is-revealed stagger-1">
+          <UserPanel orders={orders} onNewOrder={handleNewOrder} loadedDesign={loadedDesign} />
+        </section>
 
         {/* Curated 3D Print Benchmark Vault */}
-        <PopularDesignsSection onLoadDesign={handleLoadDesign} onDirectDispatch={handleNewOrder} />
+        <section className="reveal-init is-revealed stagger-2">
+          <PopularDesignsSection onLoadDesign={handleLoadDesign} onDirectDispatch={handleNewOrder} />
+        </section>
 
         {/* Polymer & Resin Specification Matrix */}
-        <MaterialsSection />
+        <section className="reveal-init is-revealed stagger-3">
+          <MaterialsSection />
+        </section>
       </main>
 
       {/* ═════════════════════════════════════════════════════════════════════
           PERSISTENT INDUSTRIAL TECHNICAL FOOTER STRIP
       ═════════════════════════════════════════════════════════════════════ */}
-      <footer className="border-t border-[#333333] bg-[#141414] py-6 px-4 sm:px-6 lg:px-8 font-mono text-[12px] text-[#A1A1AA]">
-        <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Left: Manufacturing Tolerances & Standards */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-center md:text-left">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse" />
-              <span>
-                TOLERANCES: <strong className="text-white">±0.15 MM (FDM)</strong> •{" "}
-                <strong className="text-white">±0.05 MM (SLA)</strong>
-              </span>
+      <footer className="border-t border-[#333333] bg-[#141414] py-8 px-4 sm:px-6 lg:px-8 font-mono text-[12px] text-[#A1A1AA]">
+        <div className="max-w-[1440px] mx-auto flex flex-col space-y-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* Left: Manufacturing Tolerances & Standards */}
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-center md:text-left">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] animate-pulse" />
+                <span>
+                  TOLERANCES: <strong className="text-white">±0.15 MM (FDM)</strong> •{" "}
+                  <strong className="text-white">±0.05 MM (SLA)</strong>
+                </span>
+              </div>
+
+              <span className="text-[#333333] hidden sm:inline">|</span>
+
+              <div>
+                <span>
+                  STANDARD REFERENCE: <strong className="text-white">ISO/ASTM 52900</strong> // ADDITIVE
+                  MANUFACTURING GENERAL PRINCIPLES
+                </span>
+              </div>
             </div>
 
-            <span className="text-[#333333] hidden sm:inline">|</span>
-
-            <div>
-              <span>
-                STANDARD REFERENCE: <strong className="text-white">ISO/ASTM 52900</strong> // ADDITIVE
-                MANUFACTURING GENERAL PRINCIPLES
-              </span>
+            {/* Right: Technical Documentation & Github Links */}
+            <div className="flex flex-wrap items-center gap-3 text-[11px] text-[#71717A]">
+              <a
+                href="https://github.com/kuntalmanii/3d-printing-web"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[#FF5A00] transition-colors"
+              >
+                [ GITHUB REPOSITORY ↗ ]
+              </a>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => handleScrollTo("materials-section")}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                [ ISO 9001:2015 AUDITED ]
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => {
+                  sound.playClick();
+                  setIsCommandOpen(true);
+                }}
+                className="hover:text-white transition-colors cursor-pointer"
+              >
+                [ SYSTEM API TELEMETRY ]
+              </button>
             </div>
           </div>
 
-          {/* Right: Legal Copyright */}
-          <div className="text-center md:text-right text-[#71717A] text-[11px] md:text-[12px]">
+          <div className="pt-4 border-t border-[#222222] flex flex-col sm:flex-row items-center justify-between text-[#71717A] text-[11px]">
             <span>© 2026 NEXUS // 3D INDUSTRIAL FABRICATION CORP. ALL RIGHTS RESERVED.</span>
+            <span className="text-[10px] text-[#555555]">PROD RIG ARCHITECTURE: AUSTIN HUB-01 • LATENCY &lt; 14MS</span>
           </div>
         </div>
       </footer>
+
+      {/* Mobile Persistent Bottom Command Bar */}
+      <MobileNav
+        activeSection={activeSection}
+        onScrollTo={handleScrollTo}
+        onNavigateTrack={() => {
+          sound.playClick();
+          window.location.hash = "#/track";
+        }}
+      />
 
       {/* Global Command Palette Modal */}
       <CommandPalette
