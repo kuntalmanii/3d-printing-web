@@ -127,7 +127,11 @@ export default function CheckoutModal({
     sound.playClick();
     navigator.clipboard.writeText(upiPayeeVpa);
     setIsUpiCopied(true);
-    addToast(`UPI ID (${upiPayeeVpa}) copied to clipboard!`, "success");
+    addToast({
+      title: "UPI VPA Copied",
+      message: `UPI ID (${upiPayeeVpa}) copied to clipboard.`,
+      type: "success",
+    });
     setTimeout(() => setIsUpiCopied(false), 2500);
   };
 
@@ -231,8 +235,8 @@ export default function CheckoutModal({
         upiDetails:
           paymentMethod === "upi"
             ? {
-                payeeVpa,
-                payeeName,
+                payeeVpa: upiPayeeVpa,
+                payeeName: upiPayeeName,
                 bank: "Bank of Baroda - 4164",
                 utrNumber: upiUtr || null,
                 payerVpa: upiId || null,

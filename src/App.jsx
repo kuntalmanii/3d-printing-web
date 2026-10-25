@@ -261,7 +261,7 @@ function MainApplicationShell() {
     // 1. Update shared orders state
     setOrders((prev) =>
       prev.map((ord) => {
-        if (ord.id === orderId) {
+        if (ord.id === orderId || ord.trackingId === orderId) {
           const progress =
             newStatus === "DISPATCHED"
               ? 100

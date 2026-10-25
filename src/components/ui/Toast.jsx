@@ -13,7 +13,20 @@ import { sound } from "../../utils/soundEffects";
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
-  const addToast = useCallback(({ title, message, type = "info", orderId, duration = 4500 }) => {
+  const addToast = useCallback((payload, maybeType = "info") => {
+    let title, message, type, orderId, duration;
+
+    if (typeof payload === "string") {
+      title = payload;
+      message = "";
+      type = maybeType;
+      duration = 4500;
+    } else if (payload && typeof payload === "object") {
+      ({ title, message, type = "info", orderId, duration = 4500 } = payload);
+    } else {
+      return;
+    }
+
     const id = Date.now() + Math.random().toString(36).substring(2, 6);
 
     if (type === "success") {
@@ -24,7 +37,7 @@ export function ToastProvider({ children }) {
       sound.playChirp();
     }
 
-    setToasts((prev) => [...prev, { id, title, message, type, orderId, duration }]);
+    setToasts((prev) => [...prev, { id, title: title || "System Alert", message, type, orderId, duration }]);
 
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));

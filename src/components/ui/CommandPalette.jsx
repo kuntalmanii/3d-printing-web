@@ -83,20 +83,22 @@ export default function CommandPalette({
   const normalizedQuery = query.toLowerCase().trim();
 
   // Filter matching orders
-  const matchingOrders = orders.filter(
-    (ord) =>
-      ord.id.toLowerCase().includes(normalizedQuery) ||
-      (ord.filename && ord.filename.toLowerCase().includes(normalizedQuery)) ||
-      (ord.client && ord.client.toLowerCase().includes(normalizedQuery))
-  );
+  const matchingOrders = orders.filter((ord) => {
+    if (!ord) return false;
+    const id = String(ord.id || ord.trackingId || "").toLowerCase();
+    const filename = String(ord.filename || ord.file?.originalName || "").toLowerCase();
+    const client = String(ord.client || ord.customer?.company || ord.customer?.fullName || "").toLowerCase();
+    return id.includes(normalizedQuery) || filename.includes(normalizedQuery) || client.includes(normalizedQuery);
+  });
 
   // Filter matching popular designs
-  const matchingDesigns = popularDesigns.filter(
-    (d) =>
-      d.title.toLowerCase().includes(normalizedQuery) ||
-      d.category.toLowerCase().includes(normalizedQuery) ||
-      d.technology.toLowerCase().includes(normalizedQuery)
-  );
+  const matchingDesigns = popularDesigns.filter((d) => {
+    if (!d) return false;
+    const title = String(d.title || "").toLowerCase();
+    const category = String(d.category || "").toLowerCase();
+    const tech = String(d.technology || "").toLowerCase();
+    return title.includes(normalizedQuery) || category.includes(normalizedQuery) || tech.includes(normalizedQuery);
+  });
 
   return (
     <div
@@ -299,26 +301,26 @@ export default function CommandPalette({
                 // ACTIVE ORDERS &amp; TELEMETRY ({matchingOrders.length})
               </span>
               <div className="space-y-1">
-                {matchingOrders.slice(0, 5).map((ord) => (
+                {matchingOrders.slice(0, 5).map((ord, idx) => (
                   <button
-                    key={ord.id}
+                    key={ord.id || ord.trackingId || `ord-${idx}`}
                     type="button"
                     onClick={() => {
                       sound.playClick();
-                      onSelectOrder(ord.id);
+                      onSelectOrder(ord.id || ord.trackingId);
                       onClose();
                     }}
                     className="w-full text-left px-3 py-2 rounded-[1px] hover:bg-[#222222] border border-[#262626] flex items-center justify-between group transition-colors"
                   >
                     <div className="flex items-center gap-2.5">
-                      <span className="text-[#FF5A00] font-bold">{ord.id}</span>
+                      <span className="text-[#FF5A00] font-bold">{ord.id || ord.trackingId}</span>
                       <span className="text-[#A1A1AA] text-[11px] truncate max-w-[220px]">
-                        {ord.filename}
+                        {ord.filename || ord.file?.originalName || "3D Part"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] px-2 py-0.5 bg-[#181818] border border-[#333333] text-[#A1A1AA]">
-                        {ord.status}
+                        {ord.status || "QUEUED"}
                       </span>
                       <span className="text-[#FF5A00] font-bold text-[11px]">
                         {ord.progress || 0}%
