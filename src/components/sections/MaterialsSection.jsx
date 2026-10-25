@@ -388,31 +388,33 @@ export default function MaterialsSection() {
               <div
                 key={card.id}
                 className="
-                  relative bg-[#141414] border border-[#333333] hover:border-[#FF5A00]
-                  p-6 transition-colors duration-200 flex flex-col justify-between
+                  shimmer-card group relative bg-[#141414]/90 backdrop-blur-sm border border-[#333333] hover:border-[#FF5A00]
+                  p-6 transition-all duration-300 hover:shadow-[0_0_24px_rgba(255,90,0,0.14)] flex flex-col justify-between
+                  rounded-[1px]
                 "
               >
                 {/* Top Corner Mechanical Accent */}
-                <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-[#FF5A00]" />
+                <div className="absolute top-0 right-0 w-2.5 h-2.5 border-t border-r border-[#FF5A00] group-hover:scale-125 transition-transform" />
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-[#333333] group-hover:border-[#FF5A00] transition-colors" />
 
                 <div>
                   {/* Card Header & Badge */}
                   <div className="flex items-center justify-between mb-3 font-mono text-[10px]">
-                    <span className="text-[#FF5A00] tracking-widest font-bold">
+                    <span className="text-[#FF5A00] tracking-widest font-bold group-hover:text-white transition-colors">
                       [{card.index} // {card.tag}]
                     </span>
-                    <span className="px-2 py-0.5 border border-[#333333] bg-[#1a1a1a] text-[#A1A1AA] uppercase font-semibold">
+                    <span className="px-2 py-0.5 border border-[#333333] group-hover:border-[#FF5A00]/50 bg-[#1a1a1a] text-[#A1A1AA] group-hover:text-white uppercase font-semibold transition-colors">
                       {card.badge}
                     </span>
                   </div>
 
                   {/* Card Title */}
-                  <h3 className="font-sans text-[18px] font-bold text-white mb-3 tracking-tight">
+                  <h3 className="font-sans text-[18px] font-bold text-white mb-3 tracking-tight group-hover:text-[#FF5A00] transition-colors">
                     {card.title}
                   </h3>
 
                   {/* Specification Metric Callouts */}
-                  <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-[#0f0f11] border border-[#222222] font-mono text-[11px]">
+                  <div className="grid grid-cols-2 gap-2 mb-4 p-3 bg-[#0f0f11] border border-[#222222] group-hover:border-[#333333] font-mono text-[11px] transition-colors">
                     {card.specs.map((spec) => (
                       <div key={spec.label}>
                         <span className="text-[#71717A] text-[9px] block uppercase">
@@ -435,7 +437,7 @@ export default function MaterialsSection() {
                 <div className="border-t border-[#222222] pt-3 flex items-center justify-between font-mono text-[10px]">
                   <span className="text-[#71717A]">PROTOCOL STATUS:</span>
                   <span className="text-[#22C55E] flex items-center gap-1.5 font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E] animate-pulse" />
                     ACTIVE FLEET QA
                   </span>
                 </div>

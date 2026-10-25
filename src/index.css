@@ -81,6 +81,46 @@
   }
 }
 
+@keyframes shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-6px); }
+}
+
+@keyframes gradient-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes border-glow-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 90, 0, 0.3), 0 0 20px rgba(255, 90, 0, 0.1); }
+  50%       { box-shadow: 0 0 18px rgba(255, 90, 0, 0.65), 0 0 40px rgba(255, 90, 0, 0.25); }
+}
+
+@keyframes fab-in {
+  from { opacity: 0; transform: translateY(16px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes progress-grow {
+  from { width: 0; }
+}
+
+@keyframes slide-up-fade {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ─────────────────────────────────────────────
    CSS CUSTOM PROPERTIES — DESIGN TOKENS
 ───────────────────────────────────────────── */
@@ -350,6 +390,117 @@ body {
 .stagger-2 { transition-delay: 0.12s; }
 .stagger-3 { transition-delay: 0.18s; }
 .stagger-4 { transition-delay: 0.25s; }
+
+/* ─────────────────────────────────────────────
+   GLASSMORPHISM UTILITY
+───────────────────────────────────────────── */
+.glass-dark {
+  background: rgba(17, 17, 17, 0.72);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─────────────────────────────────────────────
+   SHIMMER SWEEP CARD — hover accent
+───────────────────────────────────────────── */
+.shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 90, 0, 0.06) 50%,
+    transparent 60%
+  );
+  transform: translateX(-100%);
+  transition: none;
+  pointer-events: none;
+}
+.shimmer-card:hover::after {
+  animation: shimmer 0.7s ease-out forwards;
+}
+
+/* ─────────────────────────────────────────────
+   ANIMATED GRADIENT BORDER GLOW
+───────────────────────────────────────────── */
+.border-glow-active {
+  animation: border-glow-pulse 2.5s ease-in-out infinite;
+}
+
+/* ─────────────────────────────────────────────
+   FLOATING FAB BUTTON
+───────────────────────────────────────────── */
+.fab-quote {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1.25rem;
+  z-index: 45;
+  animation: fab-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (min-width: 768px) {
+  .fab-quote {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   SCROLL PROGRESS BAR
+───────────────────────────────────────────── */
+.scroll-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #FF5A00, #FF9E66, #FF5A00);
+  background-size: 200% 100%;
+  animation: gradient-shift 3s ease infinite;
+  z-index: 9999;
+  transition: width 0.1s linear;
+  pointer-events: none;
+  box-shadow: 0 0 8px rgba(255, 90, 0, 0.6);
+}
+
+/* ─────────────────────────────────────────────
+   MARQUEE TICKER
+───────────────────────────────────────────── */
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ─────────────────────────────────────────────
+   SECTION ACCENT DIVIDER
+───────────────────────────────────────────── */
+.section-divider {
+  position: relative;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #333333 20%, #FF5A00 50%, #333333 80%, transparent);
+  margin: 0;
+}
+.section-divider::before {
+  content: "//";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  color: #FF5A00;
+  background: #111111;
+  padding: 0 0.75rem;
+}
 
 /* ─────────────────────────────────────────────
    SELECTION

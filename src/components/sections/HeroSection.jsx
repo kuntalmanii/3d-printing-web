@@ -441,13 +441,20 @@ export default function HeroSection({ onNavigateTrack, onScrollTo, hideNav = tru
       {/* ── [z:10] HERO COPY ────────────────────────────────── */}
       <div className="relative z-10 flex-1 flex flex-col justify-center px-6 md:px-10 lg:px-20 py-16 xl:py-24">
 
-        {/* Eyebrow label */}
-        <p
-          className="font-mono text-[11px] tracking-[0.22em] uppercase text-[#FF5A00] mb-7"
+        {/* Eyebrow label — styled pill badge */}
+        <div
+          className="inline-flex items-center gap-2.5 mb-7"
           style={{ animation: "fade-in 0.5s ease-out 0.1s both" }}
         >
-          // ON-DEMAND ADDITIVE MANUFACTURING &amp; RAPID PROTOTYPING
-        </p>
+          <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] uppercase text-[#FF5A00] bg-[#FF5A00]/10 border border-[#FF5A00]/30 px-3 py-1.5 rounded-[2px]">
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-[#FF5A00] flex-shrink-0"
+              style={{ animation: "pulse-orange 2s cubic-bezier(0.4,0,0.6,1) infinite" }}
+              aria-hidden="true"
+            />
+            // ON-DEMAND ADDITIVE MANUFACTURING &amp; RAPID PROTOTYPING
+          </span>
+        </div>
 
         {/* Main headline */}
         <h1
@@ -557,6 +564,57 @@ export default function HeroSection({ onNavigateTrack, onScrollTo, hideNav = tru
           >
             [ EXPLORE TOLERANCES ]
           </button>
+        </div>
+      </div>
+
+      {/* ── [z:10] MARQUEE STATUS TICKER ─────────────────────── */}
+      <div
+        className="relative z-10 border-t border-[#262626] bg-[#0E0E0E]/80 overflow-hidden"
+        aria-hidden="true"
+        style={{ height: "30px" }}
+      >
+        {/* Left / Right fade masks */}
+        <div className="absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(to right, #0E0E0E, transparent)" }} />
+        <div className="absolute right-0 top-0 bottom-0 w-16 z-10 pointer-events-none"
+          style={{ background: "linear-gradient(to left, #0E0E0E, transparent)" }} />
+
+        <div className="marquee-track h-full items-center gap-0">
+          {[
+            "● FLEET ONLINE",
+            "12 ACTIVE BEDS",
+            "FDM ±0.15MM",
+            "SLA ±0.05MM",
+            "PA-CF LOADED",
+            "PETG PRO LOADED",
+            "SLA TOUGH 2000",
+            "ISO 9001:2015",
+            "DISPATCH 24-48H",
+            "LAYER: 0.08MM MIN",
+            "MAX VOL 256³MM",
+            "GYROID INFILL",
+            "● FLEET ONLINE",
+            "12 ACTIVE BEDS",
+            "FDM ±0.15MM",
+            "SLA ±0.05MM",
+            "PA-CF LOADED",
+            "PETG PRO LOADED",
+            "SLA TOUGH 2000",
+            "ISO 9001:2015",
+            "DISPATCH 24-48H",
+            "LAYER: 0.08MM MIN",
+            "MAX VOL 256³MM",
+            "GYROID INFILL",
+          ].map((item, i) => (
+            <span
+              key={i}
+              className="flex-shrink-0 font-mono text-[9px] tracking-[0.18em] uppercase h-full flex items-center"
+            >
+              <span className={item.startsWith("●") ? "text-[#FF5A00] font-bold" : "text-[#555555]"}
+              >{item}</span>
+              <span className="mx-5 text-[#2A2A2A]">|</span>
+            </span>
+          ))}
         </div>
       </div>
 

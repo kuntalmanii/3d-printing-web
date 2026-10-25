@@ -93,35 +93,47 @@ export default function ExecutiveHero({ fleet = [], onScrollTo }) {
               <div className="flex flex-wrap items-center gap-3 pt-2">
                 <button
                   type="button"
+                  id="btn-hero-launch-slicer"
                   onClick={() => {
                     sound.playClick();
                     onScrollTo("user-panel");
                   }}
-                  className="bg-[#FF5A00] hover:bg-[#D94D00] text-black font-mono text-xs font-bold uppercase px-5 py-2.5 rounded-[1px] transition-all cursor-pointer shadow-sm hover:scale-[1.01]"
+                  className="relative group bg-[#FF5A00] hover:bg-[#D94D00] text-black font-mono text-xs font-bold uppercase px-5 py-2.5 rounded-[1px] transition-all duration-200 cursor-pointer shadow-[0_0_16px_rgba(255,90,0,0.35)] hover:shadow-[0_0_24px_rgba(255,90,0,0.6)] active:scale-[0.98]"
                 >
-                  [ LAUNCH SLICER &amp; QUOTE ↓ ]
+                  <span className="flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>LAUNCH SLICER &amp; QUOTE ↓</span>
+                  </span>
                 </button>
 
                 <button
                   type="button"
+                  id="btn-hero-explore-vault"
                   onClick={() => {
                     sound.playClick();
                     onScrollTo("popular-designs");
                   }}
-                  className="bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] border border-[#333333] hover:border-[#FF5A00] font-mono text-xs font-bold uppercase px-5 py-2.5 rounded-[1px] transition-all cursor-pointer"
+                  className="bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] border border-[#333333] hover:border-[#FF5A00]/80 font-mono text-xs font-bold uppercase px-5 py-2.5 rounded-[1px] transition-all duration-200 cursor-pointer hover:shadow-[0_0_14px_rgba(255,90,0,0.2)] active:scale-[0.98]"
                 >
-                  [ EXPLORE VERIFIED VAULT ]
+                  <span className="flex items-center gap-1.5">
+                    <span>🗄</span>
+                    <span>EXPLORE VERIFIED VAULT</span>
+                  </span>
                 </button>
 
                 <button
                   type="button"
+                  id="btn-hero-materials-matrix"
                   onClick={() => {
                     sound.playClick();
                     onScrollTo("materials-section");
                   }}
-                  className="bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] border border-[#333333] hover:border-[#FF5A00] font-mono text-xs font-bold uppercase px-5 py-2.5 rounded-[1px] transition-all cursor-pointer"
+                  className="bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] border border-[#333333] hover:border-[#FF5A00]/80 font-mono text-xs font-bold uppercase px-5 py-2.5 rounded-[1px] transition-all duration-200 cursor-pointer hover:shadow-[0_0_14px_rgba(255,90,0,0.2)] active:scale-[0.98]"
                 >
-                  [ POLYMER &amp; RESIN MATRIX ]
+                  <span className="flex items-center gap-1.5">
+                    <span>🧪</span>
+                    <span>POLYMER &amp; RESIN MATRIX</span>
+                  </span>
                 </button>
               </div>
             </div>
@@ -129,11 +141,12 @@ export default function ExecutiveHero({ fleet = [], onScrollTo }) {
             {/* Right 5 Cols: 4 Technical KPI Modules */}
             <div className="lg:col-span-5 grid grid-cols-2 gap-3">
               {/* Metric 1 */}
-              <div className="bg-[#111111] border border-[#262626] p-4 rounded-[1px] hover:border-[#FF5A00]/50 transition-colors">
+              <div className="shimmer-card group relative bg-[#111111]/80 backdrop-blur-sm border border-[#262626] p-4 rounded-[1px] hover:border-[#FF5A00]/70 transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,90,0,0.12)] cursor-default">
+                <span className="absolute top-1.5 right-2 font-mono text-[8px] text-[#444444] group-hover:text-[#FF5A00] transition-colors">+01</span>
                 <span className="font-mono text-[9px] text-[#71717A] uppercase tracking-wider block">
                   MICRONIC RESOLUTION
                 </span>
-                <span className="font-mono text-xl sm:text-2xl font-black text-white mt-1 block">
+                <span className="font-mono text-xl sm:text-2xl font-black text-white mt-1 block group-hover:text-[#FF5A00] transition-colors">
                   ±0.05 <span className="text-[#FF5A00] text-sm">MM</span>
                 </span>
                 <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-snug">
@@ -142,11 +155,12 @@ export default function ExecutiveHero({ fleet = [], onScrollTo }) {
               </div>
 
               {/* Metric 2 */}
-              <div className="bg-[#111111] border border-[#262626] p-4 rounded-[1px] hover:border-[#FF5A00]/50 transition-colors">
+              <div className="shimmer-card group relative bg-[#111111]/80 backdrop-blur-sm border border-[#262626] p-4 rounded-[1px] hover:border-[#FF5A00]/70 transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,90,0,0.12)] cursor-default">
+                <span className="absolute top-1.5 right-2 font-mono text-[8px] text-[#444444] group-hover:text-[#FF5A00] transition-colors">+02</span>
                 <span className="font-mono text-[9px] text-[#71717A] uppercase tracking-wider block">
                   STRUCTURAL YIELD
                 </span>
-                <span className="font-mono text-xl sm:text-2xl font-black text-white mt-1 block">
+                <span className="font-mono text-xl sm:text-2xl font-black text-white mt-1 block group-hover:text-[#FF5A00] transition-colors">
                   115 <span className="text-[#FF5A00] text-sm">MPA</span>
                 </span>
                 <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-snug">
@@ -155,11 +169,12 @@ export default function ExecutiveHero({ fleet = [], onScrollTo }) {
               </div>
 
               {/* Metric 3 */}
-              <div className="bg-[#111111] border border-[#262626] p-4 rounded-[1px] hover:border-[#FF5A00]/50 transition-colors">
+              <div className="shimmer-card group relative bg-[#111111]/80 backdrop-blur-sm border border-[#262626] p-4 rounded-[1px] hover:border-[#FF5A00]/70 transition-all duration-300 hover:shadow-[0_0_20px_rgba(255,90,0,0.12)] cursor-default">
+                <span className="absolute top-1.5 right-2 font-mono text-[8px] text-[#444444] group-hover:text-[#FF5A00] transition-colors">+03</span>
                 <span className="font-mono text-[9px] text-[#71717A] uppercase tracking-wider block">
                   STANDARD COMPLIANCE
                 </span>
-                <span className="font-mono text-xl sm:text-2xl font-black text-white mt-1 block">
+                <span className="font-mono text-xl sm:text-2xl font-black text-white mt-1 block group-hover:text-[#FF5A00] transition-colors">
                   ISO 52900
                 </span>
                 <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-snug">
@@ -168,7 +183,8 @@ export default function ExecutiveHero({ fleet = [], onScrollTo }) {
               </div>
 
               {/* Metric 4 */}
-              <div className="bg-[#111111] border border-[#262626] p-4 rounded-[1px] hover:border-[#FF5A00]/50 transition-colors">
+              <div className="shimmer-card group relative bg-[#111111]/80 backdrop-blur-sm border border-[#262626] p-4 rounded-[1px] hover:border-[#22C55E]/70 transition-all duration-300 hover:shadow-[0_0_20px_rgba(34,197,94,0.12)] cursor-default">
+                <span className="absolute top-1.5 right-2 font-mono text-[8px] text-[#444444] group-hover:text-[#22C55E] transition-colors">+04</span>
                 <span className="font-mono text-[9px] text-[#71717A] uppercase tracking-wider block">
                   PRODUCTION PROTOCOL
                 </span>

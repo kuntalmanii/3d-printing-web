@@ -18,7 +18,7 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import HeroSection from "./components/sections/HeroSection";
 import UserPanel from "./components/UserPanel";
 import ExecutiveHero from "./components/sections/ExecutiveHero";
@@ -74,6 +74,23 @@ function MainApplicationShell() {
     const timer = setInterval(updateTime, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Scroll progress & FAB visibility
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showFab, setShowFab] = useState(false);
+
+  const handleScroll = useCallback(() => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const progress = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+    setScrollProgress(progress);
+    setShowFab(scrollTop > window.innerHeight * 0.75);
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [handleScroll]);
 
   const handleAuthSuccess = () => {
     setIsAdminAuthenticated(true);
@@ -383,10 +400,18 @@ function MainApplicationShell() {
 
   return (
     <div className="min-h-screen bg-[#111111] text-white selection:bg-[#FF5A00] selection:text-white flex flex-col font-sans pb-16 md:pb-0">
+      {/* ═══════════════ SCROLL PROGRESS BAR ═══════════════ */}
+      <div
+        className="scroll-progress-bar"
+        style={{ width: `${scrollProgress}%` }}
+        aria-hidden="true"
+      />
       {/* ═════════════════════════════════════════════════════════════════════
           TOP STICKY INDUSTRIAL COMMAND BAR (PUBLIC CLIENT INTERFACE)
       ═════════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 bg-[#161616]/95 backdrop-blur-md border-b border-[#333333] px-4 md:px-8 py-3 transition-colors">
+      <header className="sticky top-0 z-50 bg-[#161616]/95 backdrop-blur-md border-b border-[#333333] px-4 md:px-8 py-3 transition-colors" style={{ boxShadow: "0 1px 0 rgba(255,90,0,0.08), 0 4px 24px rgba(0,0,0,0.6)" }}>
+        {/* Top accent glow line */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#FF5A00]/40 to-transparent pointer-events-none" />
         <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           {/* Left Side: Brand Identity & Telemetry Beacon */}
           <div className="flex items-center gap-3 self-start sm:self-auto">
@@ -535,24 +560,30 @@ function MainApplicationShell() {
       />
 
       {/* 2. Client Production Workspace & Catalog Modules */}
-      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12 space-y-12">
+      <main className="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         {/* Executive Overview Header */}
-        <section className="reveal-init is-revealed">
+        <section className="reveal-init is-revealed mb-12">
           <ExecutiveHero fleet={fleet} onScrollTo={handleScrollTo} />
         </section>
 
+        <div className="section-divider my-10" aria-hidden="true" />
+
         {/* Client Production Panel */}
-        <section className="reveal-init is-revealed stagger-1">
+        <section className="reveal-init is-revealed stagger-1 mb-12">
           <UserPanel orders={orders} onNewOrder={handleNewOrder} loadedDesign={loadedDesign} />
         </section>
 
+        <div className="section-divider my-10" aria-hidden="true" />
+
         {/* Curated 3D Print Benchmark Vault */}
-        <section className="reveal-init is-revealed stagger-2">
+        <section className="reveal-init is-revealed stagger-2 mb-12">
           <PopularDesignsSection onLoadDesign={handleLoadDesign} onDirectDispatch={handleNewOrder} />
         </section>
 
+        <div className="section-divider my-10" aria-hidden="true" />
+
         {/* Polymer & Resin Specification Matrix */}
-        <section className="reveal-init is-revealed stagger-3">
+        <section className="reveal-init is-revealed stagger-3 mb-4">
           <MaterialsSection />
         </section>
       </main>
@@ -560,7 +591,9 @@ function MainApplicationShell() {
       {/* ═════════════════════════════════════════════════════════════════════
           PERSISTENT INDUSTRIAL TECHNICAL FOOTER STRIP
       ═════════════════════════════════════════════════════════════════════ */}
-      <footer className="border-t border-[#333333] bg-[#141414] py-8 px-4 sm:px-6 lg:px-8 font-mono text-[12px] text-[#A1A1AA]">
+      <footer className="relative border-t border-[#333333] bg-[#141414] py-8 px-4 sm:px-6 lg:px-8 font-mono text-[12px] text-[#A1A1AA]">
+        {/* Accent glow line at top of footer */}
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#FF5A00]/30 to-transparent pointer-events-none" />
         <div className="max-w-[1440px] mx-auto flex flex-col space-y-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Left: Manufacturing Tolerances & Standards */}
@@ -631,6 +664,36 @@ function MainApplicationShell() {
           window.location.hash = "#/track";
         }}
       />
+
+      {/* Floating FAB — Instant Quote shortcut (visible after scrolling past hero) */}
+      {showFab && (
+        <div className="fab-quote">
+          <button
+            type="button"
+            id="fab-instant-quote"
+            onClick={() => {
+              sound.playClick();
+              handleScrollTo("user-panel");
+            }}
+            className="
+              flex items-center gap-2
+              bg-[#FF5A00] hover:bg-[#D94D00]
+              text-black font-mono text-[10px] font-bold tracking-[0.12em] uppercase
+              px-4 py-2.5 rounded-[2px]
+              shadow-[0_0_24px_rgba(255,90,0,0.55),0_4px_16px_rgba(0,0,0,0.6)]
+              hover:shadow-[0_0_36px_rgba(255,90,0,0.75),0_6px_20px_rgba(0,0,0,0.7)]
+              transition-all duration-200 active:scale-[0.96] cursor-pointer
+              border border-[#FF7A29]/60
+            "
+            aria-label="Jump to Instant Quote"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true">
+              <path d="M6 1L11 6H7.5V11H4.5V6H1L6 1Z" />
+            </svg>
+            INSTANT QUOTE
+          </button>
+        </div>
+      )}
 
       {/* Global Command Palette Modal */}
       {isCommandOpen && (
