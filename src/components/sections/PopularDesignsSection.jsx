@@ -475,7 +475,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
         </div>
 
         {/* Responsive Grid Designs Showcase */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {displayedDesigns.map((design) => {
             const isDispatched = dispatchedId === design.id;
             const qty = getQty(design.id);
@@ -485,7 +485,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
             return (
               <div
                 key={design.id}
-                className="card-interactive bg-[#141414] border border-[#333333] rounded-[1px] overflow-hidden flex flex-col justify-between group hover:border-[#FF5A00] hover:shadow-[0_0_25px_rgba(255,90,0,0.18)] transition-all duration-300 shadow-sm"
+                className="card-interactive bg-[#141414] border border-[#333333] rounded-[1px] overflow-hidden flex flex-col justify-between group hover:border-[#FF5A00] hover:shadow-[0_0_20px_rgba(255,90,0,0.15)] transition-all duration-300 shadow-sm"
               >
                 <div>
                   {/* High-Resolution Photography / 3D Specimen Container */}
@@ -495,7 +495,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                       setModalViewMode("3d");
                       setInspectingDesign(design);
                     }}
-                    className="relative aspect-square w-full overflow-hidden bg-[#0A0A0A] border-b border-[#262626] cursor-pointer"
+                    className="relative aspect-[16/10] sm:aspect-[4/3] w-full overflow-hidden bg-[#0A0A0A] border-b border-[#262626] cursor-pointer"
                     title="Click to view interactive 3D WebGL model & datasheet"
                   >
                     <img
@@ -509,8 +509,8 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                     <div className="absolute inset-0 bg-gradient-to-t from-[#111111]/90 via-transparent to-transparent pointer-events-none" />
 
                     {/* Top Badges: Technology, Model Code & Edit Button */}
-                    <div className="absolute top-3 inset-x-3 flex items-center justify-between font-mono text-[10px]">
-                      <span className="bg-[#111111]/90 backdrop-blur-md text-[#FF5A00] border border-[#FF5A00]/40 px-2 py-0.5 rounded-[1px] font-bold uppercase flex items-center gap-1.5">
+                    <div className="absolute top-2 inset-x-2 flex items-center justify-between font-mono text-[9px]">
+                      <span className="bg-[#111111]/90 backdrop-blur-md text-[#FF5A00] border border-[#FF5A00]/40 px-1.5 py-0.5 rounded-[1px] font-bold uppercase flex items-center gap-1">
                         <span>[{design.technology}]</span>
                         <span className="text-white/40">|</span>
                         <span className="text-[#22C55E] flex items-center gap-0.5">
@@ -518,20 +518,20 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                           3D CAD
                         </span>
                       </span>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenEdit(design);
                           }}
-                          className="bg-[#111111]/95 hover:bg-[#FF5A00] text-[#A1A1AA] hover:text-black border border-[#333333] hover:border-[#FF5A00] px-2 py-0.5 rounded-[1px] transition-colors flex items-center gap-1 cursor-pointer font-semibold"
+                          className="bg-[#111111]/95 hover:bg-[#FF5A00] text-[#A1A1AA] hover:text-black border border-[#333333] hover:border-[#FF5A00] px-1.5 py-0.5 rounded-[1px] transition-colors flex items-center gap-0.5 cursor-pointer font-semibold text-[9px]"
                           title="Edit this model's specifications, dimensions, and pricing"
                         >
                           <span>✏️</span>
                           <span>EDIT</span>
                         </button>
-                        <span className="bg-[#111111]/90 backdrop-blur-md text-[#A1A1AA] border border-[#333333] px-2 py-0.5 rounded-[1px]">
+                        <span className="bg-[#111111]/90 backdrop-blur-md text-[#A1A1AA] border border-[#333333] px-1.5 py-0.5 rounded-[1px] text-[9px]">
                           {design.id}
                         </span>
                       </div>
@@ -539,28 +539,28 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
 
                     {/* Inspect Badge Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-                      <span className="bg-[#111111]/95 border border-[#FF5A00] text-[#FF5A00] font-mono text-[11px] px-3 py-1.5 rounded-[1px] uppercase tracking-wider font-bold shadow-xl flex items-center gap-1.5">
+                      <span className="bg-[#111111]/95 border border-[#FF5A00] text-[#FF5A00] font-mono text-[10px] px-2.5 py-1 rounded-[1px] uppercase tracking-wider font-bold shadow-xl flex items-center gap-1">
                         <span>🧊</span>
-                        <span>[ INSPECT 3D MODEL & DATASHEET ]</span>
+                        <span>[ INSPECT 3D MODEL ]</span>
                       </span>
                     </div>
 
                     {/* Bottom Image Overlay: Dimensions & Volume */}
-                    <div className="absolute bottom-3 inset-x-3 flex items-center justify-between font-mono text-[10px] text-white">
-                      <span className="bg-[#111111]/90 border border-[#333333] px-2 py-0.5 rounded-[1px]">
+                    <div className="absolute bottom-2 inset-x-2 flex items-center justify-between font-mono text-[9px] text-white">
+                      <span className="bg-[#111111]/90 border border-[#333333] px-1.5 py-0.5 rounded-[1px]">
                         {design.dimensions.x} × {design.dimensions.y} × {design.dimensions.z} mm
                       </span>
-                      <span className="bg-[#FF5A00]/90 text-black font-bold px-2 py-0.5 rounded-[1px]">
+                      <span className="bg-[#FF5A00]/90 text-black font-bold px-1.5 py-0.5 rounded-[1px]">
                         {design.volumeCm3} cm³
                       </span>
                     </div>
                   </div>
 
                   {/* Card Content & Metadata */}
-                  <div className="p-5 space-y-4">
+                  <div className="p-3.5 space-y-2.5">
                     {/* Header: Title & Category */}
                     <div>
-                      <span className="font-mono text-[9px] text-[#FF5A00] uppercase tracking-wider block font-semibold mb-1">
+                      <span className="font-mono text-[8.5px] text-[#FF5A00] uppercase tracking-wider block font-semibold mb-0.5">
                         // {design.category}
                       </span>
                       <h3
@@ -568,62 +568,63 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                           sound.playClick();
                           setInspectingDesign(design);
                         }}
-                        className="font-sans font-bold text-lg text-white group-hover:text-[#FF5A00] transition-colors leading-snug cursor-pointer"
+                        className="font-sans font-bold text-sm sm:text-base text-white group-hover:text-[#FF5A00] transition-colors leading-snug cursor-pointer line-clamp-1"
+                        title={design.title}
                       >
                         {design.title}
                       </h3>
-                      <p className="font-sans text-xs text-[#A1A1AA] mt-1.5 leading-relaxed line-clamp-2">
+                      <p className="font-sans text-[11px] text-[#A1A1AA] mt-1 leading-relaxed line-clamp-2">
                         {design.description}
                       </p>
                     </div>
 
                     {/* Technical Specs 4-Pillar Grid */}
-                    <div className="grid grid-cols-2 gap-2 bg-[#111111] border border-[#222222] p-2.5 rounded-[1px] font-mono text-[10px]">
+                    <div className="grid grid-cols-2 gap-1.5 bg-[#111111] border border-[#222222] p-2 rounded-[1px] font-mono text-[9px]">
                       <div>
-                        <span className="text-[#71717A] uppercase block">RECOMMENDED:</span>
+                        <span className="text-[#71717A] uppercase block text-[8px]">RECOMMENDED:</span>
                         <span className="text-white font-semibold truncate block mt-0.5">
                           {design.recommendedMaterial}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#71717A] uppercase block">EST. RUN TIME:</span>
+                        <span className="text-[#71717A] uppercase block text-[8px]">EST. RUN TIME:</span>
                         <span className="text-[#FF5A00] font-bold block mt-0.5">
                           {design.printTime}
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#71717A] uppercase block">FACET DENSITY:</span>
+                        <span className="text-[#71717A] uppercase block text-[8px]">FACET DENSITY:</span>
                         <span className="text-white block mt-0.5">
                           {design.facetCount.toLocaleString()} △
                         </span>
                       </div>
                       <div>
-                        <span className="text-[#71717A] uppercase block">BASE PRICE:</span>
-                        <span className="text-[#FF5A00] font-black text-xs block mt-0.5">
+                        <span className="text-[#71717A] uppercase block text-[8px]">BASE PRICE:</span>
+                        <span className="text-[#FF5A00] font-black text-[11px] block mt-0.5">
                           {formatINR(design.price)}
                         </span>
                       </div>
                     </div>
 
                     {/* Quantity Selector & Bulk Badge */}
-                    <div className="flex items-center justify-between border-t border-[#222222] pt-3 font-mono text-xs">
+                    <div className="flex items-center justify-between border-t border-[#222222] pt-2 font-mono text-[10px]">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[#71717A] text-[10px] uppercase">BATCH QTY:</span>
+                        <span className="text-[#71717A] text-[9px] uppercase">BATCH QTY:</span>
                         <div className="flex items-center border border-[#333333] rounded-[1px] bg-[#111111]">
                           <button
                             type="button"
                             onClick={() => handleQtyChange(design.id, -1)}
-                            className="px-2 py-0.5 text-[#A1A1AA] hover:text-white hover:bg-[#222222] transition-colors cursor-pointer"
+                            className="px-1.5 py-0.5 text-[#A1A1AA] hover:text-white hover:bg-[#222222] transition-colors cursor-pointer text-[10px]"
                           >
                             −
                           </button>
-                          <span className="px-2 font-bold text-white text-[11px] min-w-[20px] text-center">
+                          <span className="px-1.5 font-bold text-white text-[10px] min-w-[16px] text-center">
                             {qty}
                           </span>
                           <button
                             type="button"
                             onClick={() => handleQtyChange(design.id, 1)}
-                            className="px-2 py-0.5 text-[#A1A1AA] hover:text-white hover:bg-[#222222] transition-colors cursor-pointer"
+                            className="px-1.5 py-0.5 text-[#A1A1AA] hover:text-white hover:bg-[#222222] transition-colors cursor-pointer text-[10px]"
                           >
                             +
                           </button>
@@ -631,18 +632,18 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                       </div>
 
                       {qty >= 5 && (
-                        <span className="text-[9px] text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/30 px-1.5 py-0.5 rounded-[1px] font-bold">
-                          {qty >= 10 ? "10% BULK DISCOUNT" : "5% BULK DISCOUNT"}
+                        <span className="text-[8.5px] text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/30 px-1 py-0.2 rounded-[1px] font-bold">
+                          {qty >= 10 ? "10% BULK" : "5% BULK"}
                         </span>
                       )}
                     </div>
 
                     {/* Feature Micro-tags */}
-                    <div className="flex flex-wrap gap-1.5">
-                      {design.tags.map((tag) => (
+                    <div className="flex flex-wrap gap-1">
+                      {design.tags.slice(0, 3).map((tag) => (
                         <span
                           key={tag}
-                          className="font-mono text-[9px] bg-[#181818] text-[#888888] border border-[#262626] px-2 py-0.5 rounded-[1px]"
+                          className="font-mono text-[8.5px] bg-[#181818] text-[#888888] border border-[#262626] px-1.5 py-0.5 rounded-[1px]"
                         >
                           {tag}
                         </span>
@@ -652,23 +653,23 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="p-5 pt-0 space-y-2 border-t border-[#222222] mt-2 pt-4">
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="p-3.5 pt-0 space-y-1.5 border-t border-[#222222] mt-1 pt-2.5">
+                  <div className="grid grid-cols-2 gap-1.5">
                     {/* Load into Slicer & CAD Editor */}
                     <button
                       type="button"
                       onClick={() => handleLoadIntoSlicer(design)}
-                      className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] border border-[#333333] hover:border-[#FF5A00] py-2.5 px-2 font-mono text-[10px] md:text-[11px] font-bold uppercase rounded-[1px] transition-colors cursor-pointer flex items-center justify-center gap-1"
+                      className="w-full bg-[#1A1A1A] hover:bg-[#252525] text-white hover:text-[#FF5A00] border border-[#333333] hover:border-[#FF5A00] py-2 px-1 font-mono text-[10px] font-bold uppercase rounded-[1px] transition-colors cursor-pointer flex items-center justify-center gap-1"
                       title="Load model into Instant Slicing Configurator & CAD Editor"
                     >
-                      <span>[ ✏️ CUSTOMIZE &amp; SLICE ]</span>
+                      <span>[ ✏️ CUSTOMIZE ]</span>
                     </button>
 
                     {/* Instant Dispatch */}
                     <button
                       type="button"
                       onClick={() => handleInstantDispatch(design)}
-                      className={`w-full py-2.5 px-2 font-mono text-[10px] md:text-[11px] font-bold uppercase rounded-[1px] transition-colors cursor-pointer flex items-center justify-center gap-1 border ${
+                      className={`w-full py-2 px-1 font-mono text-[10px] font-bold uppercase rounded-[1px] transition-colors cursor-pointer flex items-center justify-center gap-1 border ${
                         isDispatched
                           ? "bg-[#22C55E] text-black border-[#22C55E]"
                           : "bg-[#FF5A00] hover:bg-[#D94D00] text-black border-[#FF5A00]"
@@ -678,7 +679,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                       {isDispatched ? (
                         <span>✓ QUEUED</span>
                       ) : (
-                        <span>[ DISPATCH — {formatINR(totalPrice)} ]</span>
+                        <span>[ ORDER — {formatINR(totalPrice)} ]</span>
                       )}
                     </button>
                   </div>
@@ -688,9 +689,9 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(design)}
-                      className="font-mono text-[10px] text-[#71717A] hover:text-[#FF5A00] transition-colors flex items-center gap-1 cursor-pointer"
+                      className="font-mono text-[9px] text-[#71717A] hover:text-[#FF5A00] transition-colors flex items-center gap-1 cursor-pointer"
                     >
-                      <span>✏️ Edit Specifications</span>
+                      <span>✏️ Edit Specs</span>
                     </button>
                     <button
                       type="button"
@@ -699,7 +700,7 @@ export default function PopularDesignsSection({ onLoadDesign, onDirectDispatch }
                         setModalViewMode("3d");
                         setInspectingDesign(design);
                       }}
-                      className="font-mono text-[10px] text-[#A1A1AA] hover:text-[#FF5A00] transition-colors cursor-pointer flex items-center gap-1"
+                      className="font-mono text-[9px] text-[#A1A1AA] hover:text-[#FF5A00] transition-colors cursor-pointer flex items-center gap-1"
                     >
                       <span>🧊 3D Preview ↗</span>
                     </button>
