@@ -323,15 +323,23 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
     const m = totalMinutes % 60;
     const durationFormatted = h > 0 ? `${h}h ${m}m` : `${m}m`;
 
+    const matCost = Math.round(materialCost);
+    const machCost = Math.round(machineCost);
+    const subtotal = totalPrice;
+    const tax = Math.round(subtotal * 0.18);
+
     return {
       massGrams,
       estimatedHours,
       durationFormatted,
-      materialCost: Math.round(materialCost),
-      machineCost: Math.round(machineCost),
+      materialCost: matCost,
+      machineCost: machCost,
+      runTimeCost: machCost,
       setupFee,
       postProcessingCost,
       priorityFee,
+      subtotal,
+      tax,
       totalPrice,
     };
   }, [

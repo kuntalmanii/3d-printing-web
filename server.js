@@ -78,6 +78,20 @@ const MATERIALS = {
     costPerGram: 6.80,
     density: 1.15,
   },
+  'pla-speed': {
+    id: 'pla-speed',
+    name: 'PLA+ High Speed',
+    technology: 'FDM',
+    costPerGram: 3.50,
+    density: 1.24,
+  },
+  'resin-clear': {
+    id: 'resin-clear',
+    name: 'High-Temp Optical Resin',
+    technology: 'SLA',
+    costPerGram: 16.50,
+    density: 1.17,
+  },
   'resin-tough': {
     id: 'resin-tough',
     name: 'Engineering Tough',
@@ -250,10 +264,17 @@ function computeServerQuote({
   // Resolve material by id or name
   let mat = MATERIALS[materialKey];
   if (!mat) {
+    const keyLower = String(materialKey || '').toLowerCase();
     const found = Object.values(MATERIALS).find(
       (m) =>
-        m.name.toLowerCase() === String(materialKey).toLowerCase() ||
-        m.id.toLowerCase() === String(materialKey).toLowerCase()
+        m.name.toLowerCase() === keyLower ||
+        m.id.toLowerCase() === keyLower ||
+        (keyLower.includes('pla') && m.id.includes('pla')) ||
+        (keyLower.includes('petg') && m.id.includes('petg')) ||
+        (keyLower.includes('carbon') && m.id.includes('pa-cf')) ||
+        (keyLower.includes('clear') && m.id.includes('resin-clear')) ||
+        (keyLower.includes('tough') && m.id.includes('resin-tough')) ||
+        (keyLower.includes('resin') && m.technology === 'SLA')
     );
     mat = found || MATERIALS['pla-plus'];
   }
@@ -542,6 +563,8 @@ app.post('/api/orders', (req, res) => {
 
     // Server-side recalculation of pricing if configuration and volume exist to prevent tampering
     let validatedPricing = pricing;
+    const shippingFee = Number(pricing?.shippingFee) || 0;
+
     if (configuration && configuration.volumeCm3) {
       const serverQuote = computeServerQuote({
         volumeCm3: configuration.volumeCm3,
@@ -552,12 +575,21 @@ app.post('/api/orders', (req, res) => {
         addons: configuration.addons || configuration.selectedAddonIds || [],
       });
       validatedPricing = serverQuote.breakdown;
+      if (shippingFee > 0) {
+        validatedPricing.shippingFee = shippingFee;
+        validatedPricing.subtotal = Number((validatedPricing.subtotal + shippingFee).toFixed(2));
+        validatedPricing.tax = Math.round(validatedPricing.subtotal * PRICING_CONSTANTS.taxRate);
+        validatedPricing.total = validatedPricing.subtotal + validatedPricing.tax;
+      } else {
+        validatedPricing.shippingFee = 0;
+      }
     } else if (!validatedPricing) {
       validatedPricing = {
         materialCost: 0,
         runTimeCost: 0,
         setupFee: PRICING_CONSTANTS.setupFee,
         postProcessingCost: 0,
+        shippingFee,
         subtotal: totalAmount ? Number(totalAmount) : PRICING_CONSTANTS.setupFee,
         tax: Number(((totalAmount ? Number(totalAmount) : PRICING_CONSTANTS.setupFee) * PRICING_CONSTANTS.taxRate).toFixed(2)),
         total: totalAmount ? Number(totalAmount) : Number((PRICING_CONSTANTS.setupFee * (1 + PRICING_CONSTANTS.taxRate)).toFixed(2)),
@@ -581,7 +613,7 @@ app.post('/api/orders', (req, res) => {
         address: customer.address.trim(),
         city: customer.city ? customer.city.trim() : '',
         postalCode: customer.postalCode ? customer.postalCode.trim() : '',
-        country: customer.country ? customer.country.trim() : 'United States',
+        country: customer.country ? customer.country.trim() : 'India',
       },
       configuration: configuration || {
         technology: 'FDM',
@@ -662,7 +694,7 @@ app.get('/api/orders/:id', (req, res) => {
       customer: {
         fullName: order.customer?.fullName || 'Client Direct',
         company: order.customer?.company || null,
-        country: order.customer?.country || 'United States',
+        country: order.customer?.country || 'India',
       },
       configuration: order.configuration,
       file: order.file,

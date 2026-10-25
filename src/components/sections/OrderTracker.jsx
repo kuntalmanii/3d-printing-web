@@ -16,7 +16,7 @@
  *  - Direct integration with backend API (GET /api/orders/:id) with automatic offline fallback
  */
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { formatINR } from "../../data/mockData";
 
 // ─────────────────────────────────────────────────────────────
@@ -242,12 +242,13 @@ export default function OrderTracker({ initialId = "NX-88492", isStandalonePage 
   }, []);
 
   // Handle Search Submission
-  const handleTracePart = async (idToSearch) => {
-    const rawId = (idToSearch || queryInput).trim().toUpperCase();
+  const handleTracePart = useCallback(async (idToSearch) => {
+    const rawId = (idToSearch || "").trim().toUpperCase();
     if (!rawId) return;
 
     setIsLoading(true);
     setFetchError(null);
+    setQueryInput(rawId);
 
     // 1. Check local presets first
     const presetMatch = PRESET_ORDERS.find(
@@ -335,7 +336,75 @@ export default function OrderTracker({ initialId = "NX-88492", isStandalonePage 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Automatically trace and query live telemetry whenever initialId changes or component mounts
+  useEffect(() => {
+    if (!initialId) return;
+
+    let isCurrent = true;
+    const queryBackend = async () => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const response = await fetch(`/api/orders/${encodeURIComponent(initialId)}`, {
+          headers: { Accept: "application/json" },
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+
+        if (!isCurrent) return;
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.success && data?.order) {
+            setActiveTrackingId(data.trackingId);
+
+            const backendStatus = data.status || "";
+            let mappedIndex = 0;
+            if (backendStatus === "ANALYZING_MESH" || backendStatus === "PENDING_REVIEW") {
+              mappedIndex = 0;
+            } else if (backendStatus === "QUEUED_FOR_PRINT") {
+              mappedIndex = 1;
+            } else if (backendStatus === "EXTRUDING") {
+              mappedIndex = 2;
+            } else if (backendStatus === "POST_PROCESSING") {
+              mappedIndex = 3;
+            } else if (backendStatus === "DISPATCHED") {
+              mappedIndex = 4;
+            } else {
+              mappedIndex = data.telemetry?.activeStep ? Math.min(4, Math.max(0, data.telemetry.activeStep - 1)) : 2;
+            }
+
+            setActiveStageIndex(mappedIndex);
+            setOrderDetails({
+              trackingId: data.trackingId,
+              stageIndex: mappedIndex,
+              partName: data.order.file?.originalName || "custom_part.stl",
+              material: data.order.configuration?.material || "PETG Functional",
+              technology: data.order.configuration?.technology || "FDM",
+              orderDate: new Date(data.order.createdAt).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              }).toUpperCase(),
+              customer: data.order.customer?.company || data.order.customer?.fullName || "Verified Client",
+              pricingTotal: data.order.pricing?.total ? formatINR(data.order.pricing.total) : null,
+            });
+            setFetchError(null);
+          }
+        }
+      } catch {
+        // Fallback or offline: preset data already set during state initialization
+      }
+    };
+
+    queryBackend();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [initialId]);
 
   const handleCopyId = () => {
     navigator.clipboard.writeText(activeTrackingId);
@@ -428,7 +497,7 @@ export default function OrderTracker({ initialId = "NX-88492", isStandalonePage 
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleTracePart();
+              handleTracePart(queryInput);
             }}
             className="flex flex-col sm:flex-row gap-3"
           >

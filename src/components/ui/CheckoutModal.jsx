@@ -1263,7 +1263,7 @@ export default function CheckoutModal({
                 onClick={() => {
                   sound.playClick();
                   onClose();
-                  window.location.hash = "#/track";
+                  window.location.hash = `#/track?id=${confirmedOrder.id}`;
                 }}
                 className="bg-[#FF5A00] hover:bg-[#E04F00] text-black font-sans font-bold text-xs px-5 py-2.5 rounded-[1px] uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(255,90,0,0.3)]"
               >

@@ -13,18 +13,25 @@ import OrderTracker from "../components/sections/OrderTracker";
 
 export default function TrackPage({ onBack }) {
   // Extract tracking ID from URL if provided (e.g. #/track?id=NX-88492 or #/track/NX-88492)
-  const [initialId] = useState(() => {
-    const hash = window.location.hash;
+  const getHashId = () => {
+    const hash = window.location.hash || "";
     const match = hash.match(/[?&]id=([a-zA-Z0-9_-]+)/i) || hash.match(/#\/track\/([a-zA-Z0-9_-]+)/i);
     return match ? match[1].toUpperCase() : "NX-88492";
-  });
+  };
+
+  const [currentId, setCurrentId] = useState(getHashId);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    const handleHashChange = () => {
+      setCurrentId(getHashId());
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
   }, []);
 
   const handlePopout = () => {
-    const url = window.location.origin + window.location.pathname + `#/track?id=${initialId}`;
+    const url = window.location.origin + window.location.pathname + `#/track?id=${currentId}`;
     window.open(url, "_blank", "width=1280,height=900,menubar=no,toolbar=no,location=no,status=no");
   };
 
@@ -76,7 +83,7 @@ export default function TrackPage({ onBack }) {
 
       {/* ── MAIN TRACKING APPLICATION VIEW ────────────────────── */}
       <main className="flex-1">
-        <OrderTracker initialId={initialId} isStandalonePage={true} />
+        <OrderTracker initialId={currentId} isStandalonePage={true} />
       </main>
 
       {/* ── TERMINAL FOOTER ───────────────────────────────────── */}

@@ -126,6 +126,16 @@ export default function ModelViewer3D({
   const isAutoRotatingRef = useRef(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const modelBoundsRef = useRef({ minZ: 0, maxZ: 40 });
+  const [uncontrolledProgress, setUncontrolledProgress] = useState(layerProgress);
+  const activeLayerProgress = onLayerChange ? layerProgress : uncontrolledProgress;
+
+  const handleLayerChange = (newVal) => {
+    if (onLayerChange) {
+      onLayerChange(newVal);
+    } else {
+      setUncontrolledProgress(newVal);
+    }
+  };
 
   useEffect(() => {
     isAutoRotatingRef.current = isAutoRotating;
@@ -1093,7 +1103,7 @@ export default function ModelViewer3D({
       }
 
       // Smooth laser glow pulse
-      if (laserMat.visible) {
+      if (laserPlaneRef.current?.visible) {
         const elapsed = clock.getElapsedTime();
         laserMat.opacity = 0.12 + Math.sin(elapsed * 4) * 0.06;
       }
@@ -1167,11 +1177,9 @@ export default function ModelViewer3D({
       });
     }
 
-    // Apply slicing clipping plane in slice mode
-    if (renderMode === "slice") {
-      activeMat.clippingPlanes = [clipPlaneRef.current];
-      activeMat.clipShadows = true;
-    }
+    // Always attach slicing clipping plane to activeMat so dynamic cross-section slicing works smoothly
+    activeMat.clippingPlanes = [clipPlaneRef.current];
+    activeMat.clipShadows = true;
 
     // Build the 3D model
     const type = detectedType();
@@ -1203,14 +1211,6 @@ export default function ModelViewer3D({
     const maxZ = Math.max(minZ + 10, box.max.y);
     modelBoundsRef.current = { minZ, maxZ };
 
-    // Update clipping and laser plane to current layerProgress immediately
-    const progressFactor = Math.min(1.0, Math.max(0.0, layerProgress / 100));
-    const currentY = minZ + (maxZ - minZ) * progressFactor;
-    clipPlaneRef.current.constant = currentY;
-    if (laserPlaneRef.current) {
-      laserPlaneRef.current.position.y = currentY;
-      laserPlaneRef.current.visible = renderMode === "slice" || layerProgress < 100;
-    }
 
     // Update Bounding Box Box3 helper
     if (boundingBoxMeshRef.current) {
@@ -1237,26 +1237,29 @@ export default function ModelViewer3D({
     isMirroredY,
     technology,
     fileBuffer,
-    layerProgress,
   ]);
 
   // ───────────────────────────────────────────────────────────────────────────
-  // UPDATE LAYER SLICE LASER HEIGHT
+  // UPDATE LAYER SLICE LASER HEIGHT (SMOOTH 60 FPS WITHOUT REBUILDING MODEL)
   // ───────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     const { minZ, maxZ } = modelBoundsRef.current;
-    const progressFactor = Math.min(1.0, Math.max(0.0, layerProgress / 100));
-    const currentY = minZ + (maxZ - minZ) * progressFactor;
+    const progressFactor = Math.min(1.0, Math.max(0.0, activeLayerProgress / 100));
+    const currentY = (renderMode === "slice" || activeLayerProgress < 100)
+      ? minZ + (maxZ - minZ) * progressFactor
+      : maxZ + 1000;
 
     // Update clipping plane position
     clipPlaneRef.current.constant = currentY;
 
     // Update glowing laser slice plane
     if (laserPlaneRef.current) {
-      laserPlaneRef.current.position.y = currentY;
-      laserPlaneRef.current.visible = renderMode === "slice" || layerProgress < 100;
+      laserPlaneRef.current.position.y = (renderMode === "slice" || activeLayerProgress < 100)
+        ? minZ + (maxZ - minZ) * progressFactor
+        : maxZ;
+      laserPlaneRef.current.visible = renderMode === "slice" || activeLayerProgress < 100;
     }
-  }, [layerProgress, renderMode]);
+  }, [activeLayerProgress, renderMode]);
 
   // ───────────────────────────────────────────────────────────────────────────
   // PERSPECTIVE CAMERA QUICK-VIEWS
@@ -1428,7 +1431,7 @@ export default function ModelViewer3D({
               <span className="text-[#A1A1AA]">
                 SLICING LASER DEPTH:{" "}
                 <strong className="text-[#FF5A00]">
-                  {Math.round((layerProgress / 100) * 350)} / 350 LAYERS
+                  {Math.round((activeLayerProgress / 100) * 350)} / 350 LAYERS
                 </strong>
                 {renderMode === "slice" && (
                   <span className="ml-2 text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/30 px-1 py-0.2 rounded-[1px]">
@@ -1437,7 +1440,7 @@ export default function ModelViewer3D({
                 )}
               </span>
               <span className="text-[#71717A] text-[8px] uppercase">
-                {layerProgress}% CROSS-SECTION
+                {activeLayerProgress}% CROSS-SECTION
               </span>
             </div>
 
@@ -1445,8 +1448,8 @@ export default function ModelViewer3D({
               type="range"
               min="0"
               max="100"
-              value={layerProgress}
-              onChange={(e) => onLayerChange && onLayerChange(Number(e.target.value))}
+              value={activeLayerProgress}
+              onChange={(e) => handleLayerChange(Number(e.target.value))}
               className="w-full accent-[#FF5A00] cursor-pointer h-1.5 bg-[#222222] rounded-none"
             />
           </div>

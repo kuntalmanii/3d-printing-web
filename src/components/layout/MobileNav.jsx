@@ -68,6 +68,7 @@ export default function MobileNav({ activeSection = "slicer", onScrollTo, onNavi
               key={item.id}
               type="button"
               onClick={() => handleAction(item)}
+              aria-current={isActive ? "page" : undefined}
               className={`flex flex-col items-center justify-center py-2.5 px-1 relative transition-colors cursor-pointer select-none ${
                 isActive
                   ? "text-[#FF5A00] bg-[#FF5A00]/5"

@@ -124,6 +124,46 @@ function MainApplicationShell() {
       sound.playChirp();
     }
   };
+  // Route state initialized from window.location.hash / pathname
+  const getRoute = () => {
+    const hash = window.location.hash || "";
+    const path = window.location.pathname || "";
+    if (hash.startsWith("#/track") || hash.startsWith("#track") || path.startsWith("/track")) {
+      return "track";
+    }
+    if (
+      hash.startsWith("#/admin") ||
+      hash.startsWith("#admin") ||
+      hash.startsWith("#/operator") ||
+      hash.startsWith("#operator") ||
+      path.startsWith("/admin") ||
+      path.startsWith("/operator")
+    ) {
+      return "admin";
+    }
+    return "home";
+  };
+
+  const [currentRoute, setCurrentRoute] = useState(getRoute);
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      setCurrentRoute(getRoute());
+    };
+
+    window.addEventListener("hashchange", handleLocationChange);
+    window.addEventListener("popstate", handleLocationChange);
+    return () => {
+      window.removeEventListener("hashchange", handleLocationChange);
+      window.removeEventListener("popstate", handleLocationChange);
+    };
+  }, []);
+
+  const navigateToHome = () => {
+    window.location.hash = "#/";
+    setCurrentRoute("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleScrollTo = (elementId) => {
     if (currentRoute !== "home") {
@@ -279,41 +319,6 @@ function MainApplicationShell() {
     );
   };
 
-  // Route state initialized from window.location.hash / pathname
-  const getRoute = () => {
-    const hash = window.location.hash || "";
-    const path = window.location.pathname || "";
-    if (hash.startsWith("#/track") || hash.startsWith("#track") || path.startsWith("/track")) {
-      return "track";
-    }
-    if (
-      hash.startsWith("#/admin") ||
-      hash.startsWith("#admin") ||
-      hash.startsWith("#/operator") ||
-      hash.startsWith("#operator") ||
-      path.startsWith("/admin") ||
-      path.startsWith("/operator")
-    ) {
-      return "admin";
-    }
-    return "home";
-  };
-
-  const [currentRoute, setCurrentRoute] = useState(getRoute);
-
-  useEffect(() => {
-    const handleLocationChange = () => {
-      setCurrentRoute(getRoute());
-    };
-
-    window.addEventListener("hashchange", handleLocationChange);
-    window.addEventListener("popstate", handleLocationChange);
-    return () => {
-      window.removeEventListener("hashchange", handleLocationChange);
-      window.removeEventListener("popstate", handleLocationChange);
-    };
-  }, []);
-
   const [activeSection, setActiveSection] = useState("slicer");
 
   // Track active section for top header & mobile nav highlights
@@ -344,12 +349,6 @@ function MainApplicationShell() {
 
     return () => observer.disconnect();
   }, [currentRoute]);
-
-  const navigateToHome = () => {
-    window.location.hash = "#/";
-    setCurrentRoute("home");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   // Standalone Route 1: Order Tracking Page (With smooth route transition)
   if (currentRoute === "track") {
