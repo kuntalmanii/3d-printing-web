@@ -58,22 +58,10 @@ function MainApplicationShell() {
     }
   });
 
-  // Command Palette & Sound State
+  // Command Palette State
   const [isCommandOpen, setIsCommandOpen] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
 
-  // Live Real-Time Telemetry Clock
-  const [timeString, setTimeString] = useState("");
 
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setTimeString(now.toTimeString().split(" ")[0]);
-    };
-    updateTime();
-    const timer = setInterval(updateTime, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Scroll progress & FAB visibility
   const [scrollProgress, setScrollProgress] = useState(0);
@@ -134,13 +122,6 @@ function MainApplicationShell() {
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, []);
 
-  const handleToggleSound = () => {
-    const nextMuted = sound.toggleMute();
-    setIsMuted(nextMuted);
-    if (!nextMuted) {
-      sound.playChirp();
-    }
-  };
   // Route state initialized from window.location.hash / pathname
   const getRoute = () => {
     const hash = window.location.hash || "";
@@ -396,8 +377,6 @@ function MainApplicationShell() {
     );
   }
 
-  const activeRigsCount = fleet.filter((r) => r.status === "ACTIVE").length;
-
   return (
     <div className="min-h-screen bg-[#111111] text-white selection:bg-[#FF5A00] selection:text-white flex flex-col font-sans pb-16 md:pb-0">
       {/* ═══════════════ SCROLL PROGRESS BAR ═══════════════ */}
@@ -409,110 +388,60 @@ function MainApplicationShell() {
       {/* ═════════════════════════════════════════════════════════════════════
           TOP STICKY INDUSTRIAL COMMAND BAR (PUBLIC CLIENT INTERFACE)
       ═════════════════════════════════════════════════════════════════════ */}
-      <header className="sticky top-0 z-50 bg-[#161616]/95 backdrop-blur-md border-b border-[#333333] px-4 md:px-8 py-3 transition-colors" style={{ boxShadow: "0 1px 0 rgba(255,90,0,0.08), 0 4px 24px rgba(0,0,0,0.6)" }}>
+      <header className="sticky top-0 z-50 bg-[#161616]/95 backdrop-blur-md border-b border-[#333333] px-4 md:px-8 py-3.5 transition-colors" style={{ boxShadow: "0 1px 0 rgba(255,90,0,0.08), 0 4px 24px rgba(0,0,0,0.6)" }}>
         {/* Top accent glow line */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#FF5A00]/40 to-transparent pointer-events-none" />
-        <div className="max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          {/* Left Side: Brand Identity & Telemetry Beacon */}
-          <div className="flex items-center gap-3 self-start sm:self-auto">
-            <span className="w-3.5 h-3.5 bg-[#FF5A00] rounded-[1px] flex-shrink-0 shadow-[0_0_8px_rgba(255,90,0,0.6)]" />
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-sans font-black text-sm md:text-base tracking-wider text-white uppercase">
-                  NEXUS // 3D FABRICATION
-                </h1>
-                <span className="font-mono text-[9px] text-[#FF5A00] bg-[#FF5A00]/10 border border-[#FF5A00]/30 px-1.5 py-0.2 rounded-[1px] uppercase font-bold hidden md:inline">
-                  PROD CORE v2.4
-                </span>
-                <span className="font-mono text-[9px] text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/30 px-2 py-0.2 rounded-[1px] uppercase font-bold hidden lg:inline flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 bg-[#22C55E] rounded-full animate-ping" />
-                  FLEET: {activeRigsCount}/{fleet.length} ACTIVE
-                </span>
-              </div>
-              <p className="font-mono text-[10px] text-[#A1A1AA] uppercase tracking-wider hidden sm:block">
-                INDUSTRIAL ADDITIVE MANUFACTURING &amp; FLEET TELEMETRY
-              </p>
-            </div>
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-4">
+          {/* Left Side: Brand Identity */}
+          <div
+            onClick={navigateToHome}
+            className="flex items-center gap-2.5 cursor-pointer group select-none"
+          >
+            <span className="w-3 h-3 bg-[#FF5A00] rounded-[1px] flex-shrink-0 shadow-[0_0_8px_rgba(255,90,0,0.6)] group-hover:scale-110 transition-transform" />
+            <h1 className="font-sans font-black text-sm md:text-base tracking-wider text-white uppercase group-hover:text-[#FF5A00] transition-colors">
+              NEXUS 3D
+            </h1>
           </div>
 
-          {/* Center: In-Page Section Jump Shortcuts with Live Active Section Glow */}
-          <div className="hidden xl:flex items-center gap-1 text-[11px] font-mono text-[#A1A1AA]">
+          {/* Center: In-Page Section Navigation */}
+          <nav className="hidden md:flex items-center gap-6 text-xs font-mono tracking-wider">
             <button
               type="button"
               onClick={() => handleScrollTo("user-panel")}
-              className={`px-2.5 py-1 rounded-[1px] transition-all cursor-pointer ${
+              className={`transition-colors cursor-pointer py-1 ${
                 activeSection === "slicer"
-                  ? "text-[#FF5A00] font-bold bg-[#FF5A00]/10 border border-[#FF5A00]/40 shadow-[0_0_10px_rgba(255,90,0,0.2)]"
-                  : "hover:text-white hover:bg-[#222222] border border-transparent"
+                  ? "text-[#FF5A00] font-bold border-b border-[#FF5A00]"
+                  : "text-[#A1A1AA] hover:text-white"
               }`}
             >
-              // SLICER
+              SLICER
             </button>
-            <span className="text-[#333333]">•</span>
             <button
               type="button"
               onClick={() => handleScrollTo("popular-designs")}
-              className={`px-2.5 py-1 rounded-[1px] transition-all cursor-pointer ${
+              className={`transition-colors cursor-pointer py-1 ${
                 activeSection === "vault"
-                  ? "text-[#FF5A00] font-bold bg-[#FF5A00]/10 border border-[#FF5A00]/40 shadow-[0_0_10px_rgba(255,90,0,0.2)]"
-                  : "hover:text-white hover:bg-[#222222] border border-transparent"
+                  ? "text-[#FF5A00] font-bold border-b border-[#FF5A00]"
+                  : "text-[#A1A1AA] hover:text-white"
               }`}
             >
-              // CURATED VAULT
+              CATALOG
             </button>
-            <span className="text-[#333333]">•</span>
             <button
               type="button"
               onClick={() => handleScrollTo("materials-section")}
-              className={`px-2.5 py-1 rounded-[1px] transition-all cursor-pointer ${
+              className={`transition-colors cursor-pointer py-1 ${
                 activeSection === "materials"
-                  ? "text-[#FF5A00] font-bold bg-[#FF5A00]/10 border border-[#FF5A00]/40 shadow-[0_0_10px_rgba(255,90,0,0.2)]"
-                  : "hover:text-white hover:bg-[#222222] border border-transparent"
+                  ? "text-[#FF5A00] font-bold border-b border-[#FF5A00]"
+                  : "text-[#A1A1AA] hover:text-white"
               }`}
             >
-              // MATERIALS MATRIX
+              MATERIALS
             </button>
-          </div>
+          </nav>
 
-          {/* Right Side: Quick Search, Sound, Clock & Order Tracking Button */}
-          <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-            {/* Quick Command Trigger */}
-            <button
-              type="button"
-              onClick={() => {
-                sound.playClick();
-                setIsCommandOpen(true);
-              }}
-              className="font-mono text-xs text-[#A1A1AA] hover:text-white bg-[#111111] hover:bg-[#222222] border border-[#333333] px-2.5 py-1.5 rounded-[1px] flex items-center gap-2 transition-colors cursor-pointer"
-              title="Quick Search & Actions (⌘K)"
-            >
-              <span>🔍 SEARCH</span>
-              <kbd className="text-[9px] bg-[#1a1a1a] text-[#71717A] px-1 rounded-[1px] border border-[#2a2a2a] hidden md:inline">
-                ⌘K
-              </kbd>
-            </button>
-
-            {/* Sound Toggle Button */}
-            <button
-              type="button"
-              onClick={handleToggleSound}
-              className={`font-mono text-xs px-2 py-1.5 rounded-[1px] border transition-colors cursor-pointer ${
-                isMuted
-                  ? "border-[#333333] text-[#71717A] bg-[#111111]"
-                  : "border-[#FF5A00]/40 text-[#FF5A00] bg-[#FF5A00]/10"
-              }`}
-              title={isMuted ? "Enable Synthetic Industrial Audio" : "Mute Sound Effects"}
-            >
-              {isMuted ? "🔇" : "🔊"}
-            </button>
-
-            {/* Live Clock */}
-            {timeString && (
-              <span className="font-mono text-[11px] text-[#A1A1AA] bg-[#111111] border border-[#333333] px-2 py-1.5 rounded-[1px] hidden md:inline">
-                {timeString}
-              </span>
-            )}
-
+          {/* Right Side: Essential Actions */}
+          <div className="flex items-center gap-3">
             {/* Public Client Order Tracker Link */}
             <button
               type="button"
@@ -521,11 +450,11 @@ function MainApplicationShell() {
                 sound.playClick();
                 window.location.hash = "#/track";
               }}
-              className="font-mono text-xs md:text-[13px] px-3.5 py-1.5 rounded-[1px] border border-[#333333] bg-[#111111] hover:bg-[#222222] text-[#A1A1AA] hover:text-white transition-colors cursor-pointer uppercase tracking-wider font-semibold flex items-center gap-1.5"
+              className="font-mono text-xs px-3.5 py-1.5 rounded-[1px] border border-[#333333] hover:border-[#FF5A00] bg-[#111111] hover:bg-[#222222] text-white transition-colors cursor-pointer uppercase tracking-wider font-semibold flex items-center gap-1.5"
               title="Track Active Fabrication Order by ID"
             >
               <span>📦</span>
-              <span>[ TRACK ORDER ]</span>
+              <span>TRACK ORDER</span>
             </button>
 
             {/* If Operator has an active session, show discreet return badge */}
@@ -539,7 +468,7 @@ function MainApplicationShell() {
                 className="font-mono text-xs px-2.5 py-1.5 rounded-[1px] border border-[#FF5A00]/40 bg-[#FF5A00]/10 text-[#FF5A00] hover:bg-[#FF5A00] hover:text-black transition-colors cursor-pointer font-bold uppercase flex items-center gap-1"
                 title="Return to Active Operator Console"
               >
-                <span>⚡ OPERATOR CONSOLE</span>
+                <span>⚡ OPERATOR</span>
               </button>
             )}
           </div>
