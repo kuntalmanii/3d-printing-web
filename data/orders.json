@@ -1,5 +1,72 @@
 [
   {
+    "trackingId": "NX-45888",
+    "status": "PENDING_REVIEW",
+    "createdAt": "2026-10-25T07:25:01.568Z",
+    "updatedAt": "2026-10-25T07:25:01.568Z",
+    "customer": {
+      "fullName": "Manish",
+      "email": "kuntalmani44@gmail.com",
+      "phone": "+919870897262",
+      "company": "kuntal",
+      "address": "Sky garden pg 404",
+      "city": "BANGALORE",
+      "state": "Karnataka",
+      "postalCode": "560066",
+      "country": "India"
+    },
+    "configuration": {
+      "technology": "FDM",
+      "material": "PA-CF (Carbon Nylon)",
+      "materialId": "pa-cf",
+      "infillPercent": 45,
+      "infillPattern": "Honeycomb",
+      "layerHeight": "0.16",
+      "volumeCm3": 62,
+      "heightMm": 42,
+      "addons": []
+    },
+    "file": {
+      "originalName": "planetary_reduction_gearbox_v4.stl",
+      "dimensions": {
+        "x": 85,
+        "y": 85,
+        "z": 42
+      }
+    },
+    "pricing": {
+      "materialCost": 1315.76,
+      "runTimeCost": 705.6,
+      "setupFee": 420,
+      "postProcessingCost": 0,
+      "subtotal": 2441.36,
+      "tax": 439.44,
+      "total": 2880.8,
+      "shippingFee": 0
+    },
+    "payment": {
+      "method": "upi",
+      "reference": "UPI-9870897262@axl",
+      "status": "AUTHORIZED",
+      "clearedAt": "2026-10-25T07:25:01.424Z",
+      "upiDetails": {
+        "payeeVpa": "9870897262@axl",
+        "payeeName": "Manii Kuntal",
+        "bank": "Bank of Baroda - 4164",
+        "utrNumber": null,
+        "payerVpa": null
+      }
+    },
+    "notes": null,
+    "history": [
+      {
+        "status": "PENDING_REVIEW",
+        "timestamp": "2026-10-25T07:25:01.568Z",
+        "note": "Order submitted. Payment pre-authorization recorded. Queued for pre-flight slicing."
+      }
+    ]
+  },
+  {
     "trackingId": "NX-84538",
     "status": "PENDING_REVIEW",
     "createdAt": "2026-10-23T11:29:13.781Z",
