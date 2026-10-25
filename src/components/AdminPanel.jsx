@@ -570,9 +570,18 @@ export default function AdminPanel({
                       key={ord.id}
                       className="hover:bg-[#181818] transition-colors duration-150"
                     >
-                      {/* 1. Order Code */}
+                      {/* 1. Order Code & Authenticated Payment UTR */}
                       <td className="py-3.5 px-4 font-bold text-[#FF5A00] whitespace-nowrap">
-                        {ord.id}
+                        <span className="block">{ord.id}</span>
+                        {ord.payment?.upiDetails?.utrNumber ? (
+                          <span className="text-[10px] text-[#22C55E] block font-mono font-normal mt-0.5">
+                            ✓ UTR: {ord.payment.upiDetails.utrNumber}
+                          </span>
+                        ) : ord.payment?.reference ? (
+                          <span className="text-[10px] text-[#A1A1AA] block font-mono font-normal mt-0.5">
+                            REF: {ord.payment.reference}
+                          </span>
+                        ) : null}
                       </td>
 
                       {/* 2. File & Client */}

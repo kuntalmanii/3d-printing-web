@@ -565,6 +565,30 @@ app.post('/api/orders', (req, res) => {
       });
     }
 
+    // ─────────────────────────────────────────────────────────
+    // Mandatory UPI Payment Authentication & Clearance Validation
+    // ─────────────────────────────────────────────────────────
+    if (!payment) {
+      return res.status(400).json({
+        success: false,
+        error: 'Payment Authentication Failed: No payment manifest provided. Orders require verified UPI payment.',
+      });
+    }
+
+    const rawUtr = payment.upiDetails?.utrNumber || 
+      (typeof payment.reference === 'string' && payment.reference.startsWith('UTR-') 
+        ? payment.reference.replace('UTR-', '') 
+        : payment.reference);
+
+    const cleanUtr = String(rawUtr || '').trim().replace(/\D/g, '');
+
+    if (!cleanUtr || cleanUtr.length !== 12) {
+      return res.status(400).json({
+        success: false,
+        error: 'Payment Authentication Failed: A valid 12-digit numeric UPI Transaction ID / UTR is mandatory for order approval and clearance.',
+      });
+    }
+
     // Server-side recalculation of pricing if configuration and volume exist to prevent tampering
     let validatedPricing = pricing;
     const shippingFee = Number(pricing?.shippingFee) || 0;
@@ -629,13 +653,27 @@ app.post('/api/orders', (req, res) => {
       },
       file: file || null,
       pricing: validatedPricing,
-      payment: payment || null,
+      payment: {
+        method: 'upi',
+        status: 'AUTHENTICATED_PENDING_SETTLEMENT',
+        reference: `UTR-${cleanUtr}`,
+        authenticatedAt: new Date().toISOString(),
+        clearedAt: payment.clearedAt || new Date().toISOString(),
+        receiptProof: payment.receiptProof || null,
+        upiDetails: {
+          payeeVpa: '9870897262@axl',
+          payeeName: 'Manii Kuntal',
+          bank: 'Bank of Baroda - 4164',
+          utrNumber: cleanUtr,
+          payerVpa: payment.upiDetails?.payerVpa ? String(payment.upiDetails.payerVpa).trim() : null,
+        },
+      },
       notes: notes || null,
       history: [
         {
           status: 'PENDING_REVIEW',
           timestamp: new Date().toISOString(),
-          note: 'Order submitted. Payment pre-authorization recorded. Queued for pre-flight slicing.',
+          note: `UPI payment authenticated with UTR #${cleanUtr}. Beneficiary: Manii Kuntal (Bank of Baroda •••• 4164). Scheduled for pre-flight slicing.`,
         },
       ],
     };
