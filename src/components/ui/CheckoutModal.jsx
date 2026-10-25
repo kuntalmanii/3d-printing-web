@@ -300,6 +300,7 @@ export default function CheckoutModal({
       },
       file: {
         originalName: orderConfig.filename || "custom_model.stl",
+        filePath: orderConfig.filePath || null,
         dimensions: orderConfig.dimensions || { x: 75, y: 55, z: 35 },
       },
       pricing: {

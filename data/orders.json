@@ -1,5 +1,135 @@
 [
   {
+    "trackingId": "NX-98348",
+    "status": "PENDING_REVIEW",
+    "createdAt": "2026-10-25T08:06:19.126Z",
+    "updatedAt": "2026-10-25T08:06:19.126Z",
+    "customer": {
+      "fullName": "Manish CAD Tester",
+      "email": "manish.tester@nexus3d.io",
+      "phone": "+91 98765 43210",
+      "company": null,
+      "address": "42 Industrial Park, Phase II, Bengaluru, KA",
+      "city": "",
+      "state": "Karnataka",
+      "postalCode": "",
+      "country": "India"
+    },
+    "configuration": {
+      "technology": "FDM",
+      "material": "PA-CF (Carbon Nylon)",
+      "materialId": "pa-cf",
+      "volumeCm3": 24.5
+    },
+    "file": {
+      "originalName": "bracket_fixture.obj",
+      "filePath": "uploads/1792915579087-bracket_fixture.obj",
+      "dimensions": {
+        "x": 50,
+        "y": 50,
+        "z": 30
+      }
+    },
+    "pricing": {
+      "materialCost": 342.4,
+      "runTimeCost": 350.7,
+      "setupFee": 420,
+      "postProcessingCost": 0,
+      "subtotal": 1113.1,
+      "tax": 200.36,
+      "total": 1313.46,
+      "shippingFee": 0
+    },
+    "payment": {
+      "method": "upi",
+      "status": "AUTHENTICATED_PENDING_SETTLEMENT",
+      "reference": "UTR-987654321098",
+      "authenticatedAt": "2026-10-25T08:06:19.126Z",
+      "clearedAt": "2026-10-25T08:06:19.126Z",
+      "receiptProof": null,
+      "upiDetails": {
+        "payeeVpa": "9870897262@axl",
+        "payeeName": "Manii Kuntal",
+        "bank": "Bank of Baroda - 4164",
+        "utrNumber": "987654321098",
+        "payerVpa": null
+      }
+    },
+    "notes": null,
+    "history": [
+      {
+        "status": "PENDING_REVIEW",
+        "timestamp": "2026-10-25T08:06:19.126Z",
+        "note": "UPI payment authenticated with UTR #987654321098. Beneficiary: Manii Kuntal (Bank of Baroda •••• 4164). Scheduled for pre-flight slicing."
+      }
+    ]
+  },
+  {
+    "trackingId": "NX-73068",
+    "status": "PENDING_REVIEW",
+    "createdAt": "2026-10-25T07:42:14.965Z",
+    "updatedAt": "2026-10-25T07:42:14.965Z",
+    "customer": {
+      "fullName": "Dr. Vikram Sarabhai",
+      "email": "vikram@aerospace-systems.in",
+      "phone": "+91 98765 43210",
+      "company": "ISRO Research Labs",
+      "address": "Satellite Road, Navrangpura",
+      "city": "Ahmedabad",
+      "state": "Karnataka",
+      "postalCode": "380009",
+      "country": "India"
+    },
+    "configuration": {
+      "technology": "SLA",
+      "materialId": "resin-clear",
+      "volumeCm3": 45.5,
+      "infillPercent": 100,
+      "layerHeight": "0.08",
+      "heightMm": 50,
+      "addons": [
+        "acetone-uv-polish"
+      ]
+    },
+    "file": {
+      "originalName": "cranial_mesh_implant.stl",
+      "sizeFormatted": "14.2 MB"
+    },
+    "pricing": {
+      "materialCost": 2634.88,
+      "runTimeCost": 1289.4,
+      "setupFee": 420,
+      "postProcessingCost": 840,
+      "subtotal": 5634.28,
+      "tax": 1014,
+      "total": 6648.28,
+      "shippingFee": 450
+    },
+    "payment": {
+      "method": "upi",
+      "status": "AUTHENTICATED_PENDING_SETTLEMENT",
+      "reference": "UTR-429512345678",
+      "authenticatedAt": "2026-10-25T07:42:14.965Z",
+      "clearedAt": "2026-10-25T07:42:14.965Z",
+      "receiptProof": null,
+      "upiDetails": {
+        "payeeVpa": "9870897262@axl",
+        "payeeName": "Manii Kuntal",
+        "bank": "Bank of Baroda - 4164",
+        "utrNumber": "429512345678",
+        "payerVpa": "vikram@okhdfcbank"
+      }
+    },
+    "notes": null,
+    "history": [
+      {
+        "status": "PENDING_REVIEW",
+        "timestamp": "2026-10-25T07:42:14.965Z",
+        "note": "UPI payment authenticated with UTR #429512345678. Beneficiary: Manii Kuntal (Bank of Baroda •••• 4164). Scheduled for pre-flight slicing."
+      }
+    ]
+  },
+  {
     "trackingId": "NX-45888",
     "status": "PENDING_REVIEW",
     "createdAt": "2026-10-25T07:25:01.568Z",

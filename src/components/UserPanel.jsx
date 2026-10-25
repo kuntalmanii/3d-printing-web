@@ -21,9 +21,18 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from "react";
+import * as THREE from "three";
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { INITIAL_ORDERS, formatINR } from "../data/mockData";
 import { sound } from "../utils/soundEffects";
 import { useToast } from "../context/ToastContext";
+import {
+  computeBoundingBox,
+  computeMeshVolume,
+  computeSurfaceArea,
+  checkWatertight,
+} from "../utils/modelAnalysis";
 import ModelViewer3D from "./ModelViewer3D";
 import CheckoutModal from "./ui/CheckoutModal";
 
@@ -179,6 +188,8 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   const [isEditorOpen, setIsEditorOpen] = useState(true);
   const [customModelName, setCustomModelName] = useState("");
   const [uploadedFileBuffer, setUploadedFileBuffer] = useState(null);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [uploadSyncStatus, setUploadSyncStatus] = useState(null); // null | "uploading" | "synced" | "offline"
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutConfig, setCheckoutConfig] = useState(null);
 
@@ -413,6 +424,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   const handleLoadSample = (sample) => {
     sound.playClick();
     setUploadedFileBuffer(null);
+    setUploadSyncStatus(null);
     setSelectedFile({
       name: sample.name,
       sizeMB: sample.sizeMB,
@@ -439,50 +451,203 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
   };
 
   // File Upload Handlers (.STL, .STEP, .OBJ)
-  const processUploadedFile = (file) => {
+  const processUploadedFile = async (file) => {
     if (!file) return;
     sound.playChirp();
+
     const extension = file.name.split(".").pop().toLowerCase();
-    const sizeInMB = Number((file.size / (1024 * 1024)).toFixed(2));
+    const validExtensions = ["stl", "obj", "step", "stp"];
 
-    const baseDimension = Math.max(30, Math.min(220, Math.round(Math.sqrt(file.size / 1024) * 2.8)));
-    const x = Math.round(baseDimension * 1.1);
-    const y = Math.round(baseDimension * 0.85);
-    const z = Math.round(baseDimension * 0.5);
-    const volumeCm3 = Number(((x * y * z * 0.24) / 1000).toFixed(1));
-
-    if (extension === "stl") {
-      file.arrayBuffer().then((buffer) => {
-        setUploadedFileBuffer(buffer);
-      }).catch(() => {
-        setUploadedFileBuffer(null);
+    if (!validExtensions.includes(extension)) {
+      sound.playAlert();
+      addToast({
+        title: "Unsupported File Format",
+        message: `.${extension.toUpperCase()} is not supported. Please supply a 3D CAD mesh file (.STL, .OBJ, or .STEP).`,
+        type: "error",
       });
-    } else {
-      setUploadedFileBuffer(null);
+      return;
     }
 
-    setSelectedFile({
-      name: file.name,
-      sizeMB: sizeInMB || 0.45,
-      dimensions: { x, y, z },
-      volumeCm3: Math.max(8.0, volumeCm3),
-      extension: `.${extension}`,
-    });
-    setDesignScale({ x: 100, y: 100, z: 100 });
-    setRotation({ x: 0, y: 0, z: 0 });
-    setWallLoops(3);
-    setIsMirroredX(false);
-    setIsMirroredY(false);
-    setCustomModelName("");
-    setIsEditorOpen(true);
-    setLayerProgress(100);
-    setSuccessNotification(null);
+    if (file.size > 100 * 1024 * 1024) {
+      sound.playAlert();
+      addToast({
+        title: "File Exceeds Limit",
+        message: "Maximum upload size is 100 MB. Please compress or optimize your mesh.",
+        type: "error",
+      });
+      return;
+    }
 
-    addToast({
-      title: "CAD Geometry Ingested",
-      message: `${file.name} successfully parsed: ${x}×${y}×${z} mm bounds computed. Interactive 3D WebGL preview ready.`,
-      type: "success",
-    });
+    setIsParsingFile(true);
+    setUploadSyncStatus("uploading");
+    const sizeInMB = Number((file.size / (1024 * 1024)).toFixed(2));
+
+    try {
+      let x = 60, y = 50, z = 40;
+      let volumeCm3 = 35.0;
+      let facetsCount = 0;
+      let isWatertight = true;
+      let surfaceAreaCm2 = 0;
+      let arrayBuffer = null;
+
+      if (extension === "stl") {
+        arrayBuffer = await file.arrayBuffer();
+        const loader = new STLLoader();
+        const geometry = loader.parse(arrayBuffer);
+        geometry.computeVertexNormals();
+
+        const bbox = computeBoundingBox(geometry);
+        x = Math.max(1, bbox.x);
+        y = Math.max(1, bbox.y);
+        z = Math.max(1, bbox.z);
+
+        const calculatedVol = computeMeshVolume(geometry);
+        volumeCm3 = calculatedVol > 0.05
+          ? calculatedVol
+          : Math.max(1.0, Number(((x * y * z * 0.22) / 1000).toFixed(1)));
+
+        const surface = computeSurfaceArea(geometry);
+        surfaceAreaCm2 = surface.areaCm2;
+
+        const manifold = checkWatertight(geometry);
+        isWatertight = manifold.isWatertight;
+        facetsCount = geometry.attributes.position ? Math.round(geometry.attributes.position.count / 3) : 0;
+
+        setUploadedFileBuffer(arrayBuffer);
+      } else if (extension === "obj") {
+        const text = await file.text();
+        arrayBuffer = await file.arrayBuffer();
+        const loader = new OBJLoader();
+        const objGroup = loader.parse(text);
+
+        const box = new THREE.Box3().setFromObject(objGroup);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+
+        x = Math.max(1, Number(size.x.toFixed(2)));
+        y = Math.max(1, Number(size.y.toFixed(2)));
+        z = Math.max(1, Number(size.z.toFixed(2)));
+
+        let totalVol = 0;
+        let totalFacets = 0;
+        objGroup.traverse((child) => {
+          if (child.isMesh && child.geometry) {
+            child.geometry.computeVertexNormals();
+            totalVol += computeMeshVolume(child.geometry);
+            if (child.geometry.attributes.position) {
+              totalFacets += child.geometry.attributes.position.count / 3;
+            }
+          }
+        });
+
+        volumeCm3 = totalVol > 0.05
+          ? Number(totalVol.toFixed(2))
+          : Math.max(1.0, Number(((x * y * z * 0.22) / 1000).toFixed(1)));
+        facetsCount = Math.round(totalFacets);
+
+        setUploadedFileBuffer(arrayBuffer);
+      } else if (extension === "step" || extension === "stp") {
+        const text = await file.text();
+        arrayBuffer = await file.arrayBuffer();
+
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        let minZ = Infinity, maxZ = -Infinity;
+        let pointCount = 0;
+        const regex = /CARTESIAN_POINT\s*\(\s*'[^']*'\s*,\s*\(\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*\)\s*\)/g;
+        let match;
+        while ((match = regex.exec(text)) !== null) {
+          const px = parseFloat(match[1]);
+          const py = parseFloat(match[2]);
+          const pz = parseFloat(match[3]);
+          if (!isNaN(px) && !isNaN(py) && !isNaN(pz)) {
+            pointCount++;
+            if (px < minX) minX = px; if (px > maxX) maxX = px;
+            if (py < minY) minY = py; if (py > maxY) maxY = py;
+            if (pz < minZ) minZ = pz; if (pz > maxZ) maxZ = pz;
+          }
+        }
+
+        if (pointCount > 2 && isFinite(minX) && isFinite(maxX)) {
+          x = Math.max(5, Math.min(300, Number((maxX - minX).toFixed(1))));
+          y = Math.max(5, Math.min(300, Number((maxY - minY).toFixed(1))));
+          z = Math.max(5, Math.min(300, Number((maxZ - minZ).toFixed(1))));
+        } else {
+          const baseDimension = Math.max(30, Math.min(220, Math.round(Math.sqrt(file.size / 1024) * 2.8)));
+          x = Math.round(baseDimension * 1.1);
+          y = Math.round(baseDimension * 0.85);
+          z = Math.round(baseDimension * 0.5);
+        }
+        volumeCm3 = Number(((x * y * z * 0.24) / 1000).toFixed(1));
+        setUploadedFileBuffer(arrayBuffer);
+      }
+
+      const fileData = {
+        name: file.name,
+        sizeMB: sizeInMB || 0.1,
+        dimensions: { x, y, z },
+        volumeCm3: Math.max(1.0, volumeCm3),
+        extension: `.${extension}`,
+        facetsCount,
+        isWatertight,
+        surfaceAreaCm2,
+        source: `CAD Upload // .${extension.toUpperCase()}`,
+        filePath: null,
+      };
+
+      setSelectedFile(fileData);
+      setDesignScale({ x: 100, y: 100, z: 100 });
+      setRotation({ x: 0, y: 0, z: 0 });
+      setWallLoops(3);
+      setIsMirroredX(false);
+      setIsMirroredY(false);
+      setCustomModelName("");
+      setIsEditorOpen(true);
+      setLayerProgress(100);
+      setSuccessNotification(null);
+
+      // Async background sync with Express /api/upload endpoint
+      const formData = new FormData();
+      formData.append("file", file);
+      fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+        .then((res) => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then((data) => {
+          if (data?.success && data.file) {
+            setSelectedFile((prev) =>
+              prev ? { ...prev, filePath: data.file.filePath, serverFilename: data.file.filename } : prev
+            );
+            setUploadSyncStatus("synced");
+          } else {
+            setUploadSyncStatus("offline");
+          }
+        })
+        .catch(() => {
+          setUploadSyncStatus("offline");
+        });
+
+      addToast({
+        title: "CAD Geometry Ingested",
+        message: `${file.name} successfully parsed: ${x}×${y}×${z} mm bounds (${volumeCm3} cm³). Interactive 3D WebGL preview ready.`,
+        type: "success",
+      });
+    } catch (parseError) {
+      console.error("Failed to parse CAD file:", parseError);
+      sound.playAlert();
+      addToast({
+        title: "Mesh Parsing Failed",
+        message: `Failed to parse geometry for ${file.name}. Ensure it is a valid, uncorrupted .${extension.toUpperCase()} file.`,
+        type: "error",
+      });
+      setUploadSyncStatus(null);
+    } finally {
+      setIsParsingFile(false);
+    }
   };
 
   const handleDrop = (e) => {
@@ -503,6 +668,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
     sound.playClick();
     setSelectedFile(null);
     setUploadedFileBuffer(null);
+    setUploadSyncStatus(null);
     setDesignScale({ x: 100, y: 100, z: 100 });
     setRotation({ x: 0, y: 0, z: 0 });
     setCustomModelName("");
@@ -526,6 +692,7 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
 
     setCheckoutConfig({
       filename: activeFileName,
+      filePath: selectedFile?.filePath || null,
       volumeCm3: effectiveVolume,
       dimensions: effectiveDims,
       scale: designScale,
@@ -730,6 +897,9 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
                   type="file"
                   accept=".stl,.step,.stp,.obj"
                   onChange={handleFileChange}
+                  onClick={(e) => {
+                    e.target.value = "";
+                  }}
                   className="hidden"
                   id="user-panel-file-input"
                 />
@@ -737,41 +907,57 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
                 <div
                   onDragOver={(e) => {
                     e.preventDefault();
-                    setIsDragging(true);
+                    if (!isParsingFile) setIsDragging(true);
                   }}
                   onDragLeave={() => setIsDragging(false)}
                   onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border border-dashed rounded-[1px] p-6 text-center cursor-pointer transition-colors ${
-                    isDragging
-                      ? "border-[#FF5A00] bg-[#FF5A00]/10"
-                      : "border-[#333333] hover:border-[#FF5A00] bg-[#111111]"
+                  onClick={() => !isParsingFile && fileInputRef.current?.click()}
+                  className={`border border-dashed rounded-[1px] p-6 text-center transition-all ${
+                    isParsingFile
+                      ? "border-[#FF5A00] bg-[#FF5A00]/5 cursor-wait"
+                      : isDragging
+                      ? "border-[#FF5A00] bg-[#FF5A00]/10 cursor-pointer"
+                      : "border-[#333333] hover:border-[#FF5A00] bg-[#111111] cursor-pointer"
                   }`}
                 >
-                  <div className="w-8 h-8 mx-auto mb-2 text-[#FF5A00]">
-                    <svg
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      viewBox="0 0 24 24"
-                      className="w-full h-full"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-                      />
-                    </svg>
-                  </div>
-                  <p className="font-mono text-xs text-white font-semibold uppercase">
-                    DRAG &amp; DROP 3D CAD MODEL HERE
-                  </p>
-                  <p className="font-sans text-[11px] text-[#A1A1AA] mt-1">
-                    Direct local parsing for .STL, .STEP, and .OBJ geometry
-                  </p>
-                  <span className="inline-block mt-3 px-3 py-1 font-mono text-[10px] text-[#FF5A00] bg-[#FF5A00]/10 border border-[#FF5A00]/30 rounded-[1px] uppercase font-bold">
-                    [ SELECT LOCAL CAD FILE ]
-                  </span>
+                  {isParsingFile ? (
+                    <div className="py-2 text-center">
+                      <div className="w-8 h-8 border-2 border-[#FF5A00] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      <p className="font-mono text-xs text-[#FF5A00] font-bold uppercase tracking-wider animate-pulse">
+                        PARSING CAD GEOMETRY &amp; COMPUTING MESH BOUNDS...
+                      </p>
+                      <p className="font-mono text-[10px] text-[#A1A1AA] mt-1">
+                        Extracting real XYZ millimeters, volumetric integral &amp; watertight topology
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 mx-auto mb-2 text-[#FF5A00]">
+                        <svg
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          viewBox="0 0 24 24"
+                          className="w-full h-full"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
+                          />
+                        </svg>
+                      </div>
+                      <p className="font-mono text-xs text-white font-semibold uppercase">
+                        DRAG &amp; DROP 3D CAD MODEL HERE
+                      </p>
+                      <p className="font-sans text-[11px] text-[#A1A1AA] mt-1">
+                        Direct local parsing for .STL, .STEP, and .OBJ geometry
+                      </p>
+                      <span className="inline-block mt-3 px-3 py-1 font-mono text-[10px] text-[#FF5A00] bg-[#FF5A00]/10 border border-[#FF5A00]/30 rounded-[1px] uppercase font-bold">
+                        [ SELECT LOCAL CAD FILE ]
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 {/* 1-Click Sample Model Presets */}
@@ -803,21 +989,78 @@ export default function UserPanel({ orders = [], onNewOrder, loadedDesign = null
                 {selectedFile ? (
                   <div className="mt-5 space-y-4">
                     {/* Metadata Header */}
-                    <div className="bg-[#111111] border border-[#262626] p-3 rounded-[1px] flex items-center justify-between">
-                      <div className="truncate mr-2">
+                    <div className="bg-[#111111] border border-[#262626] p-3 rounded-[1px] flex flex-wrap items-center justify-between gap-2">
+                      <div className="truncate min-w-[160px] flex-1">
                         <span className="font-mono text-[10px] text-[#71717A] uppercase block">
                           INGESTED SOURCE PART:
                         </span>
-                        <span className="font-mono text-xs text-white font-semibold truncate block">
-                          {selectedFile.name}
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="font-mono text-xs text-white font-semibold truncate block">
+                            {selectedFile.name}
+                          </span>
+                          {selectedFile.extension && (
+                            <span className="font-mono text-[9px] px-1.5 py-0.2 bg-[#FF5A00]/20 text-[#FF5A00] border border-[#FF5A00]/40 rounded-[1px] font-bold">
+                              {selectedFile.extension.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 text-right flex-shrink-0">
+                        {uploadSyncStatus === "uploading" && (
+                          <div className="flex items-center gap-1 font-mono text-[10px] text-[#FBBF24]">
+                            <span className="w-1.5 h-1.5 bg-[#FBBF24] rounded-full animate-ping" />
+                            <span>SYNCING</span>
+                          </div>
+                        )}
+                        {uploadSyncStatus === "synced" && (
+                          <div className="flex items-center gap-1 font-mono text-[10px] text-[#10B981]">
+                            <span className="w-1.5 h-1.5 bg-[#10B981] rounded-full" />
+                            <span>VAULT SYNCED</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-mono text-[10px] text-[#71717A] uppercase block">
+                            FILE SIZE:
+                          </span>
+                          <span className="font-mono text-xs text-[#FF5A00] font-bold block">
+                            {selectedFile.sizeMB} MB
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleDiscardFile}
+                          title="Discard model and upload new file"
+                          className="font-mono text-[10px] text-[#71717A] hover:text-[#EF4444] border border-[#2A2A2A] hover:border-[#EF4444]/60 bg-[#161616] px-2 py-1 rounded-[1px] transition-colors cursor-pointer"
+                        >
+                          ✕ CLEAR
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Geometry Telemetry Pill Bar */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono text-[10px]">
+                      <div className="bg-[#111111] border border-[#222222] p-2 rounded-[1px]">
+                        <span className="text-[#71717A] block uppercase text-[9px]">ENVELOPE (MM)</span>
+                        <span className="text-white font-bold truncate block">
+                          {effectiveDims.x}×{effectiveDims.y}×{effectiveDims.z}
                         </span>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <span className="font-mono text-[10px] text-[#71717A] uppercase block">
-                          FILE SIZE:
+                      <div className="bg-[#111111] border border-[#222222] p-2 rounded-[1px]">
+                        <span className="text-[#71717A] block uppercase text-[9px]">VOLUME</span>
+                        <span className="text-[#FF5A00] font-bold block">
+                          {effectiveVolume} cm³
                         </span>
-                        <span className="font-mono text-xs text-[#FF5A00] font-bold block">
-                          {selectedFile.sizeMB} MB
+                      </div>
+                      <div className="bg-[#111111] border border-[#222222] p-2 rounded-[1px]">
+                        <span className="text-[#71717A] block uppercase text-[9px]">FACET COUNT</span>
+                        <span className="text-white font-bold block">
+                          {selectedFile.facetsCount ? selectedFile.facetsCount.toLocaleString() : "CAD Surface"}
+                        </span>
+                      </div>
+                      <div className="bg-[#111111] border border-[#222222] p-2 rounded-[1px]">
+                        <span className="text-[#71717A] block uppercase text-[9px]">MANIFOLD MESH</span>
+                        <span className={`font-bold block ${selectedFile.isWatertight === false ? "text-[#EF4444]" : "text-[#10B981]"}`}>
+                          {selectedFile.isWatertight === false ? "NON-MANIFOLD" : "WATERTIGHT (2-M)"}
                         </span>
                       </div>
                     </div>

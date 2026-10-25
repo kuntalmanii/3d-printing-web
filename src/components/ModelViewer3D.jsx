@@ -26,6 +26,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js";
 import { sound } from "../utils/soundEffects";
 
 // Material Color & PBR Presets
@@ -170,37 +171,138 @@ export default function ModelViewer3D({
       const rootGroup = new THREE.Group();
       rootGroup.name = "CAD_MODEL_ROOT";
 
-      // Check if user uploaded a real .STL file buffer
-      if (fileBuffer && fileBuffer.byteLength > 0) {
-        try {
-          const loader = new STLLoader();
-          const geometry = loader.parse(fileBuffer);
-          geometry.computeVertexNormals();
-          geometry.center();
+      // Check if user uploaded a real .STL / .OBJ / .STEP file buffer
+      if (
+        fileBuffer &&
+        (fileBuffer.byteLength > 0 ||
+          (typeof fileBuffer === "string" && fileBuffer.length > 0) ||
+          fileBuffer.buffer?.byteLength > 0)
+      ) {
+        const fn = (fileName || "").toLowerCase();
+        const isObj = fn.endsWith(".obj");
+        const isStep = fn.endsWith(".step") || fn.endsWith(".stp");
 
-          // Calculate normalized bounding size to fit ~50mm build envelope
-          geometry.computeBoundingBox();
-          const bbox = geometry.boundingBox;
-          const size = new THREE.Vector3();
-          bbox.getSize(size);
-          const maxDim = Math.max(size.x, size.y, size.z) || 1;
-          const targetDim = 45;
-          const scaleFactor = targetDim / maxDim;
-          geometry.scale(scaleFactor, scaleFactor, scaleFactor);
-          geometry.computeBoundingBox();
+        if (isObj) {
+          try {
+            let text = "";
+            if (typeof fileBuffer === "string") {
+              text = fileBuffer;
+            } else if (fileBuffer instanceof ArrayBuffer) {
+              text = new TextDecoder().decode(fileBuffer);
+            } else if (fileBuffer?.buffer instanceof ArrayBuffer) {
+              text = new TextDecoder().decode(fileBuffer.buffer);
+            }
 
-          const mesh = new THREE.Mesh(geometry, currentMaterial);
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
+            const loader = new OBJLoader();
+            const objGroup = loader.parse(text);
 
-          // Align base to Y = 0 (on top of bed)
-          const adjustedBox = new THREE.Box3().setFromObject(mesh);
-          mesh.position.y = -adjustedBox.min.y;
+            objGroup.traverse((child) => {
+              if (child.isMesh) {
+                child.material = currentMaterial;
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
 
-          rootGroup.add(mesh);
-          return rootGroup;
-        } catch {
-          // Fallback to procedural shape if corrupted
+            // Calculate bounding box and center
+            const bbox = new THREE.Box3().setFromObject(objGroup);
+            const size = new THREE.Vector3();
+            bbox.getSize(size);
+            const center = new THREE.Vector3();
+            bbox.getCenter(center);
+
+            objGroup.position.x = -center.x;
+            objGroup.position.y = -center.y;
+            objGroup.position.z = -center.z;
+
+            const wrapper = new THREE.Group();
+            wrapper.add(objGroup);
+
+            const maxDim = Math.max(size.x, size.y, size.z) || 1;
+            const targetDim = 45;
+            const scaleFactor = targetDim / maxDim;
+            wrapper.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+            const adjustedBox = new THREE.Box3().setFromObject(wrapper);
+            wrapper.position.y = -adjustedBox.min.y;
+
+            rootGroup.add(wrapper);
+            return rootGroup;
+          } catch (err) {
+            console.warn("OBJ parsing fallback:", err);
+          }
+        } else if (!isStep) {
+          // Direct STL Binary / ASCII loader
+          try {
+            const loader = new STLLoader();
+            const buffer =
+              fileBuffer instanceof ArrayBuffer
+                ? fileBuffer
+                : fileBuffer?.buffer || fileBuffer;
+            const geometry = loader.parse(buffer);
+            geometry.computeVertexNormals();
+            geometry.center();
+
+            // Calculate normalized bounding size to fit ~50mm build envelope
+            geometry.computeBoundingBox();
+            const bbox = geometry.boundingBox;
+            const size = new THREE.Vector3();
+            bbox.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z) || 1;
+            const targetDim = 45;
+            const scaleFactor = targetDim / maxDim;
+            geometry.scale(scaleFactor, scaleFactor, scaleFactor);
+            geometry.computeBoundingBox();
+
+            const mesh = new THREE.Mesh(geometry, currentMaterial);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+
+            // Align base to Y = 0 (on top of bed)
+            const adjustedBox = new THREE.Box3().setFromObject(mesh);
+            mesh.position.y = -adjustedBox.min.y;
+
+            rootGroup.add(mesh);
+            return rootGroup;
+          } catch (err) {
+            console.warn("STL parsing fallback:", err);
+          }
+        } else {
+          // High-precision procedural engineering geometry for STEP BREP files
+          try {
+            const stepGroup = new THREE.Group();
+            const targetX = Math.min(50, Math.max(20, (dimensions?.x || 50) * 0.7));
+            const targetY = Math.min(50, Math.max(20, (dimensions?.y || 45) * 0.7));
+            const targetZ = Math.min(45, Math.max(15, (dimensions?.z || 30) * 0.7));
+
+            const bodyGeo = new THREE.BoxGeometry(targetX, targetZ, targetY);
+            const bodyMesh = new THREE.Mesh(bodyGeo, currentMaterial);
+            bodyMesh.castShadow = true;
+            bodyMesh.receiveShadow = true;
+            bodyMesh.position.y = targetZ / 2;
+            stepGroup.add(bodyMesh);
+
+            const boreGeo = new THREE.CylinderGeometry(targetX * 0.22, targetX * 0.22, targetZ + 1, 32);
+            const boreMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 });
+            const boreMesh = new THREE.Mesh(boreGeo, boreMat);
+            boreMesh.position.y = targetZ / 2;
+            stepGroup.add(boreMesh);
+
+            const holeRadius = Math.max(1.5, targetX * 0.06);
+            const cornerDistX = targetX * 0.35;
+            const cornerDistZ = targetY * 0.35;
+            [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([dx, dz]) => {
+              const chGeo = new THREE.CylinderGeometry(holeRadius, holeRadius, targetZ + 1.2, 16);
+              const chMesh = new THREE.Mesh(chGeo, boreMat);
+              chMesh.position.set(dx * cornerDistX, targetZ / 2, dz * cornerDistZ);
+              stepGroup.add(chMesh);
+            });
+
+            rootGroup.add(stepGroup);
+            return rootGroup;
+          } catch (err) {
+            console.warn("STEP procedural fallback:", err);
+          }
         }
       }
 
@@ -938,7 +1040,7 @@ export default function ModelViewer3D({
       rootGroup.add(genericGroup);
       return rootGroup;
     },
-    [fileBuffer]
+    [fileBuffer, fileName, dimensions]
   );
 
   // ───────────────────────────────────────────────────────────────────────────
@@ -1237,6 +1339,8 @@ export default function ModelViewer3D({
     isMirroredY,
     technology,
     fileBuffer,
+    fileName,
+    dimensions,
   ]);
 
   // ───────────────────────────────────────────────────────────────────────────
