@@ -18,6 +18,7 @@ import { createPortal } from "react-dom";
 import { formatINR } from "../../data/mockData";
 import { sound } from "../../utils/soundEffects";
 import { useToast } from "../../context/ToastContext";
+import upiQrImage from "../../assets/payment/upi-qr.jpg";
 
 const INDIAN_STATES = [
   "Karnataka",
@@ -79,6 +80,8 @@ export default function CheckoutModal({
   // Step 3: Payment Form State
   const [paymentMethod, setPaymentMethod] = useState("upi"); // "upi" | "card" | "po" | "sandbox"
   const [upiId, setUpiId] = useState("");
+  const [upiUtr, setUpiUtr] = useState("");
+  const [isUpiCopied, setIsUpiCopied] = useState(false);
   const [cardData, setCardData] = useState({
     holderName: "",
     cardNumber: "",
@@ -114,6 +117,19 @@ export default function CheckoutModal({
   const taxableAmount = baseSubtotal + shippingFee;
   const gstTax = Math.round(taxableAmount * 0.18);
   const grandTotal = taxableAmount + gstTax;
+
+  // Authentic Merchant UPI Configuration (PhonePe / Bank of Baroda - 4164)
+  const upiPayeeVpa = "9870897262@axl";
+  const upiPayeeName = "Manii Kuntal";
+  const upiIntentUri = `upi://pay?pa=${encodeURIComponent(upiPayeeVpa)}&pn=${encodeURIComponent(upiPayeeName)}&am=${encodeURIComponent(grandTotal)}&cu=INR&tn=${encodeURIComponent(`Nexus 3D Order ${orderConfig.filename || "CAD"}`)}`;
+
+  const handleCopyUpiId = () => {
+    sound.playClick();
+    navigator.clipboard.writeText(upiPayeeVpa);
+    setIsUpiCopied(true);
+    addToast(`UPI ID (${upiPayeeVpa}) copied to clipboard!`, "success");
+    setTimeout(() => setIsUpiCopied(false), 2500);
+  };
 
   // Validation for Step 1
   const validateShippingForm = () => {
@@ -204,7 +220,7 @@ export default function CheckoutModal({
         method: paymentMethod,
         reference:
           paymentMethod === "upi"
-            ? (upiId || "UPI-QR-VERIFIED")
+            ? (upiUtr ? `UTR-${upiUtr}` : upiId ? `UPI-${upiId}` : `UPI-${upiPayeeVpa}`)
             : paymentMethod === "card"
             ? `CARD-••••-${cardData.cardNumber.slice(-4) || "8842"}`
             : paymentMethod === "po"
@@ -212,6 +228,16 @@ export default function CheckoutModal({
             : "SANDBOX-CLEARANCE",
         status: "AUTHORIZED",
         clearedAt: getIsoTimestamp(),
+        upiDetails:
+          paymentMethod === "upi"
+            ? {
+                payeeVpa,
+                payeeName,
+                bank: "Bank of Baroda - 4164",
+                utrNumber: upiUtr || null,
+                payerVpa: upiId || null,
+              }
+            : null,
       },
       notes: shippingData.notes.trim() || null,
     };
@@ -953,60 +979,116 @@ export default function CheckoutModal({
 
             {/* Payment Sub-panels */}
             <div className="bg-[#161616] border border-[#2a2a2a] p-5 rounded-[1px]">
-              {/* Option 1: UPI Dynamic QR */}
+              {/* Option 1: Authentic PhonePe / Bank of Baroda UPI QR */}
               {paymentMethod === "upi" && (
                 <div className="flex flex-col md:flex-row items-center gap-6">
-                  {/* Procedural High-Contrast QR Code */}
-                  <div className="bg-white p-3 rounded-[1px] flex flex-col items-center shadow-lg border border-[#333333]">
-                    <svg viewBox="0 0 120 120" className="w-36 h-36">
-                      {/* Corner Targets */}
-                      <rect x="10" y="10" width="30" height="30" fill="#000" />
-                      <rect x="15" y="15" width="20" height="20" fill="#fff" />
-                      <rect x="20" y="20" width="10" height="10" fill="#000" />
+                  {/* High-Contrast Authentic QR Code Display */}
+                  <div className="relative bg-[#181818] p-3 rounded-[2px] flex flex-col items-center border border-[#333333] shadow-2xl shrink-0 group">
+                    {/* Industrial Corner Brackets */}
+                    <span className="absolute top-1 left-1 w-2.5 h-2.5 border-t-2 border-l-2 border-[#FF5A00]" />
+                    <span className="absolute top-1 right-1 w-2.5 h-2.5 border-t-2 border-r-2 border-[#FF5A00]" />
+                    <span className="absolute bottom-1 left-1 w-2.5 h-2.5 border-b-2 border-l-2 border-[#FF5A00]" />
+                    <span className="absolute bottom-1 right-1 w-2.5 h-2.5 border-b-2 border-r-2 border-[#FF5A00]" />
 
-                      <rect x="80" y="10" width="30" height="30" fill="#000" />
-                      <rect x="85" y="15" width="20" height="20" fill="#fff" />
-                      <rect x="90" y="20" width="10" height="10" fill="#000" />
+                    <div className="bg-white p-2 rounded-[2px] overflow-hidden flex flex-col items-center">
+                      <img
+                        src={upiQrImage}
+                        alt="PhonePe UPI QR Code - Bank of Baroda - 4164"
+                        className="w-40 sm:w-44 h-auto object-contain select-none rounded-[1px]"
+                      />
+                    </div>
 
-                      <rect x="10" y="80" width="30" height="30" fill="#000" />
-                      <rect x="15" y="85" width="20" height="20" fill="#fff" />
-                      <rect x="20" y="90" width="10" height="10" fill="#000" />
-
-                      {/* Data Grid Pattern */}
-                      <rect x="50" y="20" width="10" height="20" fill="#000" />
-                      <rect x="65" y="10" width="10" height="10" fill="#000" />
-                      <rect x="50" y="50" width="20" height="20" fill="#FF5A00" />
-                      <rect x="20" y="50" width="20" height="10" fill="#000" />
-                      <rect x="80" y="50" width="10" height="20" fill="#000" />
-                      <rect x="95" y="65" width="15" height="10" fill="#000" />
-                      <rect x="50" y="80" width="10" height="30" fill="#000" />
-                      <rect x="70" y="85" width="20" height="10" fill="#000" />
-                      <rect x="100" y="90" width="10" height="20" fill="#000" />
-                    </svg>
-                    <span className="font-mono text-[9px] text-black font-bold uppercase tracking-wider mt-1">
-                      UPI ID: nexus3d@axis
-                    </span>
+                    {/* Payee / Bank Badge */}
+                    <div className="w-full mt-2 pt-2 border-t border-[#262626] flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-[#A1A1AA]">BANK OF BARODA</span>
+                      <span className="text-[#FF5A00] font-bold">•••• 4164</span>
+                    </div>
                   </div>
 
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-[#22C55E]">✓ INSTANT CLEARANCE</span>
-                      <span className="font-mono text-[10px] text-[#71717A]">• GOOGLE PAY / PHONEPE / PAYTM</span>
+                  <div className="flex-1 space-y-3.5 w-full">
+                    {/* Payee Identity & Clearance Header */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#262626] pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
+                        <span className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+                          PAYEE: {upiPayeeName}
+                        </span>
+                      </div>
+                      <span className="font-mono text-[10px] text-[#22C55E] bg-[#22C55E]/10 border border-[#22C55E]/30 px-2 py-0.5">
+                        ✓ 0% TRANSACTION FEE
+                      </span>
                     </div>
+
                     <p className="font-sans text-xs text-[#A1A1AA] leading-relaxed">
-                      Scan the QR code with any UPI app on your device, or enter your VPA / UPI ID below to receive a collect request.
+                      Scan with <strong className="text-white">PhonePe, Google Pay, Paytm, BHIM</strong>, or any UPI app. 
+                      On mobile, tap below to launch payment directly.
                     </p>
-                    <div>
-                      <label className="font-mono text-[10px] text-[#A1A1AA] uppercase block mb-1">
-                        Enter UPI ID / VPA
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="e.g. yourname@okaxis"
-                        value={upiId}
-                        onChange={(e) => setUpiId(e.target.value)}
-                        className="w-full bg-[#121212] border border-[#333333] focus:border-[#FF5A00] px-3 py-2 text-sm text-white rounded-[1px] outline-none font-mono"
-                      />
+
+                    {/* 1-Click Copy UPI VPA & Mobile Intent */}
+                    <div className="bg-[#121212] border border-[#2A2A2A] p-2.5 rounded-[1px] flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <span className="font-mono text-[9px] text-[#71717A] uppercase block">
+                          PAYEE UPI ID / VPA
+                        </span>
+                        <span className="font-mono text-xs font-bold text-white tracking-wider">
+                          {upiPayeeVpa}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleCopyUpiId}
+                          className="font-mono text-[11px] font-bold px-2.5 py-1.5 bg-[#222222] hover:bg-[#2A2A2A] text-white hover:text-[#FF5A00] border border-[#333333] transition-colors cursor-pointer"
+                        >
+                          {isUpiCopied ? "✓ COPIED" : "📋 COPY UPI"}
+                        </button>
+                        <a
+                          href={upiIntentUri}
+                          className="font-mono text-[11px] font-bold px-2.5 py-1.5 bg-[#FF5A00] hover:bg-[#E04F00] text-black transition-colors flex items-center gap-1 cursor-pointer"
+                          title="Open in PhonePe, Google Pay, or Paytm"
+                        >
+                          <span>📱 PAY VIA APP</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Inputs: UTR Number + Optional Payer VPA */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="font-mono text-[10px] text-[#A1A1AA] uppercase block mb-1">
+                          12-Digit UTR / Ref No. (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          maxLength={12}
+                          placeholder="e.g. 429512345678"
+                          value={upiUtr}
+                          onChange={(e) => setUpiUtr(e.target.value.replace(/[^0-9]/g, ""))}
+                          className="w-full bg-[#121212] border border-[#333333] focus:border-[#FF5A00] px-3 py-2 text-xs text-white rounded-[1px] outline-none font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-mono text-[10px] text-[#A1A1AA] uppercase block mb-1">
+                          Your UPI ID (Optional)
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. yourname@okhdfcbank"
+                          value={upiId}
+                          onChange={(e) => setUpiId(e.target.value)}
+                          className="w-full bg-[#121212] border border-[#333333] focus:border-[#FF5A00] px-3 py-2 text-xs text-white rounded-[1px] outline-none font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Supported App Badges */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 font-mono text-[10px] text-[#71717A]">
+                      <span className="mr-1">ACCEPTED:</span>
+                      <span className="px-1.5 py-0.5 bg-[#1E1E1E] border border-[#2D2D2D] text-[#CCCCCC]">PhonePe</span>
+                      <span className="px-1.5 py-0.5 bg-[#1E1E1E] border border-[#2D2D2D] text-[#CCCCCC]">Google Pay</span>
+                      <span className="px-1.5 py-0.5 bg-[#1E1E1E] border border-[#2D2D2D] text-[#CCCCCC]">Paytm</span>
+                      <span className="px-1.5 py-0.5 bg-[#1E1E1E] border border-[#2D2D2D] text-[#CCCCCC]">BHIM UPI</span>
+                      <span className="px-1.5 py-0.5 bg-[#1E1E1E] border border-[#2D2D2D] text-[#CCCCCC]">CRED</span>
                     </div>
                   </div>
                 </div>
@@ -1255,6 +1337,24 @@ export default function CheckoutModal({
                 </span>
               </div>
             </div>
+
+            {/* Payment Method Receipt Pill */}
+            {confirmedOrder.payment && (
+              <div className="max-w-2xl mx-auto flex flex-wrap items-center justify-between gap-2 px-3.5 py-2 bg-[#181818] border border-[#2D2D2D] font-mono text-[11px] rounded-[1px]">
+                <div className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                  <span className="text-[#71717A]">PAYMENT RAIL:</span>
+                  <span className="text-white font-bold uppercase">
+                    {confirmedOrder.payment.method === "upi"
+                      ? "UPI // PhonePe (Bank of Baroda - 4164)"
+                      : confirmedOrder.payment.method.toUpperCase()}
+                  </span>
+                </div>
+                <div className="text-[#71717A]">
+                  REF: <span className="text-[#FF5A00] font-bold">{confirmedOrder.payment.reference}</span>
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="pt-2 flex flex-wrap items-center justify-center gap-3">

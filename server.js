@@ -542,7 +542,7 @@ app.post('/api/quote', (req, res) => {
  */
 app.post('/api/orders', (req, res) => {
   try {
-    const { customer, configuration, file, pricing, totalAmount, notes } = req.body || {};
+    const { customer, configuration, file, pricing, totalAmount, notes, payment } = req.body || {};
 
     // Validate customer contact/shipping details
     if (!customer || !customer.fullName || !customer.email || !customer.address) {
@@ -624,6 +624,7 @@ app.post('/api/orders', (req, res) => {
       },
       file: file || null,
       pricing: validatedPricing,
+      payment: payment || null,
       notes: notes || null,
       history: [
         {
@@ -699,6 +700,7 @@ app.get('/api/orders/:id', (req, res) => {
       configuration: order.configuration,
       file: order.file,
       pricing: order.pricing,
+      payment: order.payment || null,
       history: order.history,
     },
   });
