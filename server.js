@@ -385,9 +385,9 @@ function getLiveOrderStatus(order) {
   const elapsedMinutes = Math.max(0, (now - createdAt) / (1000 * 60));
 
   // Determine baseline status from elapsed time
-  let timeBasedStatus = 'ANALYZING_MESH';
-  let timeStep = 1;
-  let timeProgress = 15;
+  let timeBasedStatus = 'PENDING_REVIEW';
+  let timeStep = 0;
+  let timeProgress = 5;
 
   if (elapsedMinutes >= 90) {
     timeBasedStatus = 'DISPATCHED';
@@ -405,6 +405,10 @@ function getLiveOrderStatus(order) {
     timeBasedStatus = 'QUEUED_FOR_PRINT';
     timeStep = 2;
     timeProgress = 30;
+  } else if (elapsedMinutes >= 0.5) {
+    timeBasedStatus = 'ANALYZING_MESH';
+    timeStep = 1;
+    timeProgress = 15;
   }
 
   // If order was explicitly stored with a more advanced status, take the maximum
@@ -612,6 +616,7 @@ app.post('/api/orders', (req, res) => {
         company: customer.company ? customer.company.trim() : null,
         address: customer.address.trim(),
         city: customer.city ? customer.city.trim() : '',
+        state: customer.state ? customer.state.trim() : 'Karnataka',
         postalCode: customer.postalCode ? customer.postalCode.trim() : '',
         country: customer.country ? customer.country.trim() : 'India',
       },
@@ -695,6 +700,8 @@ app.get('/api/orders/:id', (req, res) => {
       customer: {
         fullName: order.customer?.fullName || 'Client Direct',
         company: order.customer?.company || null,
+        city: order.customer?.city || null,
+        state: order.customer?.state || null,
         country: order.customer?.country || 'India',
       },
       configuration: order.configuration,
